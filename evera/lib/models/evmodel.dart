@@ -20,6 +20,7 @@ class EvModel {
     List<PlugElement>? plugs;
     List<Amenity>? amenities;
     String? time;
+    
 
     EvModel({
         required this.name,

@@ -47,34 +47,17 @@ class AuthService {
         );
 
         print('LOGIN ATTEMPT ${ep} -> status: ${response.statusCode} -> url: ${response.requestOptions.uri}');
-        lastResponse = response;
-
-        if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
-          return response;
-        }
-
-        if (response.statusCode != null && response.statusCode! >= 500) {
-          lastError = 'Server error ${response.statusCode}: ${response.data}';
-          break;
-        }
-
-      } catch (e) {
-        lastError = e;
-        print('LOGIN ERROR on $ep: $e');
-      }
+        print("LOGIN RESPONSE: ${response.statusCode} -> ${response.data}");
+      return response;
+    } catch (e) {
+      print("LOGIN ERROR: $e");
+      return null;
     }
-
-    if (lastResponse != null) {
-      print('LOGIN FAILED - last status: ${lastResponse.statusCode} data: ${lastResponse.data}');
-    } else if (lastError != null) {
-      print('LOGIN FAILED - last error: $lastError');
     }
-
-    return lastResponse;
   }
 
   Future<Response?> signup(
-      String name, String email, String phone, String password) async {
+      String name, String email, String phone, String password, String role) async {
     try {
       final response = await dio.post(
         "api/v1/auth/signup",
@@ -82,6 +65,7 @@ class AuthService {
           "name": name,
           "email": email,
           "phone": phone,
+          "role": role,
           "password": password,
         },
       );

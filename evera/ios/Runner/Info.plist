@@ -50,5 +50,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app needs location to show nearby EV chargers</string>
+
 </dict>
 </plist>

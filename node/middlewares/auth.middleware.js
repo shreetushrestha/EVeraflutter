@@ -14,13 +14,13 @@ const authorize = async(req, res, next) => {
         if(!token) return res.status(401).json({message: 'Unauthorized: No token provided'});
 
         const decoded = jwt.verify(token, JWT_SECRET);
-
-        const user = await User.findById(decoded.userId);
+        console.log("Decoded JWT:", decoded);
+        const user = await User.findById(decoded.id);
 
         if(!user) return res.status(401).json({message: 'Unauthorized: User not found'});
 
         req.user = user;
-
+        console.log("Authenticated user:", req.user);
         next();
     }catch(error){
         res.status(401).json({message: 'Unauthorized', error: error.message})

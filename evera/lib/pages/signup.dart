@@ -13,6 +13,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController roleController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
@@ -25,6 +26,7 @@ class _SignupPageState extends State<SignupPage> {
     return nameController.text.trim().isNotEmpty &&
         emailController.text.trim().contains("@") &&
         phoneController.text.trim().length == 10 &&
+        roleController.text.trim().isNotEmpty &&
         passwordController.text.trim().length >= 6 &&
         confirmPasswordController.text.trim() == passwordController.text.trim();
   }
@@ -40,6 +42,7 @@ class _SignupPageState extends State<SignupPage> {
         emailController.text.trim(),
         phoneController.text.trim(),
         passwordController.text.trim(),
+        roleController.text.trim(),
       );
 
       Navigator.pushNamed(context, '/login');
@@ -208,6 +211,26 @@ class _SignupPageState extends State<SignupPage> {
                   // PHONE
                   const Text(
                     "Phone Number",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: phoneController,
+                    maxLength: 10,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: "10-digit phone number",
+                      counterText: "",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+
+                  // role
+                  const Text(
+                    "Role",
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 5),
