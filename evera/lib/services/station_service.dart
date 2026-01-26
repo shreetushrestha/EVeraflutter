@@ -30,16 +30,26 @@ class StationService {
     );
   }
 
+  /// ================= GET ALL STATIONS =================
   Future<List<Map<String, dynamic>>> getAllStations() async {
     final response = await dio.get('api/v1/stations');
 
     if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(response.data);
+      final data = response.data;
+
+      // Backend might return list directly OR wrapped
+      final List stations =
+          data is List ? data : (data['data'] ?? data['stations']);
+
+      return List<Map<String, dynamic>>.from(stations);
     }
 
-    throw response.data['message'] ?? 'Failed to fetch stations';
+    throw Exception(
+      response.data?['message'] ?? 'Failed to fetch stations',
+    );
   }
 
+  /// ================= GET MY STATIONS =================
   Future<List<Map<String, dynamic>>> getMyStations() async {
     final response = await dio.get('api/v1/stations/my-stations');
 
@@ -47,6 +57,8 @@ class StationService {
       return List<Map<String, dynamic>>.from(response.data['data']);
     }
 
-    throw response.data['message'] ?? 'Failed to fetch my stations';
+    throw Exception(
+      response.data?['message'] ?? 'Failed to fetch my stations',
+    );
   }
 }

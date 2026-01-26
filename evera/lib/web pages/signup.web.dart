@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
-import '../services/session.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignupPage> createState() => _SignupPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignupPageState extends State<SignupPage> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  final companyController = TextEditingController();
+  final stationController = TextEditingController();
   final passwordController = TextEditingController();
-  bool isLoading = false;
+  final confirmPasswordController = TextEditingController();
+
   bool isPasswordVisible = false;
+  bool isConfirmPasswordVisible = false;
+  bool isLoading = false;
 
   InputDecoration inputStyle(String hint, {Widget? suffix}) {
     return InputDecoration(
@@ -43,21 +49,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void loginUser() async {
+  void signupUser() async {
     setState(() => isLoading = true);
 
     try {
-      final res = await AuthService().login(
+      await AuthService().signup(
+        nameController.text.trim(),
         emailController.text.trim(),
+        phoneController.text.trim(),
         passwordController.text.trim(),
+        stationController.text.trim(),
       );
 
-      if (res != null && res.statusCode == 200) {
-        Session.token = res.data["token"];
-        Session.role = res.data["user"]["role"];
-        Session.userId = res.data["user"]["id"];
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      Navigator.pushReplacementNamed(context, '/login');
     } finally {
       setState(() => isLoading = false);
     }
@@ -70,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 220),
+            const SizedBox(height: 120),
 
             /// LOGO
             Row(
@@ -104,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
               ],
             ),
 
-            const SizedBox(height: 100),
+            const SizedBox(height: 50),
 
             /// CARD
             Container(
@@ -129,22 +133,6 @@ class _LoginPageState extends State<LoginPage> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () => Navigator.pushReplacementNamed(
-                                  context, '/signup'),
-                              child: const Center(
-                                child: Text(
-                                  "Signup",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Color(0xFFC06797),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -152,11 +140,27 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               alignment: Alignment.center,
                               child: const Text(
-                                "Login",
+                                "Signup",
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Color(0xFFC06797),
                                   fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () =>
+                                  Navigator.pushReplacementNamed(context, '/login'),
+                              child: const Center(
+                                child: Text(
+                                  "Login",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Color(0xFFC06797),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -168,19 +172,47 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 28),
 
+                  fieldLabel("Full Name"),
+                  TextField(
+                    controller: nameController,
+                    decoration: inputStyle("Enter your full name"),
+                  ),
+                  const SizedBox(height: 16),
+
                   fieldLabel("Email"),
                   TextField(
                     controller: emailController,
                     decoration: inputStyle("Enter your email"),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
+
+                  fieldLabel("Phone Number"),
+                  TextField(
+                    controller: phoneController,
+                    decoration: inputStyle("Enter your phone number"),
+                  ),
+                  const SizedBox(height: 16),
+
+                  fieldLabel("Company Name"),
+                  TextField(
+                    controller: companyController,
+                    decoration: inputStyle("Enter your company name"),
+                  ),
+                  const SizedBox(height: 16),
+
+                  fieldLabel("Primary Station Location"),
+                  TextField(
+                    controller: stationController,
+                    decoration: inputStyle("City, State"),
+                  ),
+                  const SizedBox(height: 16),
 
                   fieldLabel("Password"),
                   TextField(
                     controller: passwordController,
                     obscureText: !isPasswordVisible,
                     decoration: inputStyle(
-                      "Enter your password",
+                      "Create a password",
                       suffix: IconButton(
                         icon: Icon(
                           isPasswordVisible
@@ -193,14 +225,35 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 150),
+                  fieldLabel("Confirm Password"),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: !isConfirmPasswordVisible,
+                    decoration: inputStyle(
+                      "Re-enter password",
+                      suffix: IconButton(
+                        icon: Icon(
+                          isConfirmPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(
+                          () => isConfirmPasswordVisible =
+                              !isConfirmPasswordVisible,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
 
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: isLoading ? null : loginUser,
+                      onPressed: isLoading ? null : signupUser,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC06797),
                         foregroundColor: Colors.white,
@@ -209,7 +262,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       child: Text(
-                        isLoading ? "Logging in..." : "Login",
+                        isLoading ? "Creating account..." : "Create Account",
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

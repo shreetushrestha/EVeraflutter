@@ -1,6 +1,8 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
+import 'session.dart';
+
 
 class AuthService {
   static String get baseUrl {
@@ -48,7 +50,22 @@ class AuthService {
 
         print('LOGIN ATTEMPT ${ep} -> status: ${response.statusCode} -> url: ${response.requestOptions.uri}');
         print("LOGIN RESPONSE: ${response.statusCode} -> ${response.data}");
-      return response;
+        
+        // Save token and user data to Session if login successful
+        if (response.statusCode == 200 && response.data != null) {
+          final data = response.data as Map<String, dynamic>;
+          if (data['success'] == true && data['token'] != null) {
+            final userData = data['user'] as Map<String, dynamic>?;
+            Session.save(
+              token: data['token'],
+              role: userData?['role'] ?? 'user',
+              userId: userData?['id'],
+            );
+            print('✅ Token saved to Session');
+          }
+        }
+        
+        return response;
     } catch (e) {
       print("LOGIN ERROR: $e");
       return null;
