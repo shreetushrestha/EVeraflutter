@@ -94,4 +94,22 @@ class AuthService {
       return null;
     }
   }
+
+  Future<Response?> getUserById(String userId) async {
+  try {
+    return await dio.get(
+      "/api/v1/users/$userId",
+      options: Options(
+        headers: {
+          "Authorization": "Bearer ${Session.token}",
+        },
+      ),
+    );
+  } catch (e) {
+    print("Get user error: $e");
+    return null;
+  }
 }
+
+}
+

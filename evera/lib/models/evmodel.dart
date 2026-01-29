@@ -10,15 +10,11 @@ class EvModel {
   final String province;
   final String address;
   final String telephone;
-
   final double latitude;
   final double longitude;
-
   final List<String> type;
-  final List<String> amenities;
   final List<Plug> plugs;
-
-  final String? time;
+  final List<String> amenities;
 
   EvModel({
     required this.id,
@@ -30,48 +26,33 @@ class EvModel {
     required this.latitude,
     required this.longitude,
     required this.type,
-    required this.amenities,
     required this.plugs,
-    this.time,
+    required this.amenities,
   });
 
   factory EvModel.fromJson(Map<String, dynamic> json) {
     return EvModel(
-      id: json["_id"] ?? "",
-      name: json["name"] ?? "Unknown Station",
-      city: json["city"] ?? "",
-      province: json["province"] ?? "",
-      address: json["address"] ?? "",
-      telephone: json["telephone"] ?? "",
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      city: json['city'] ?? '',
+      province: json['province'] ?? '',
+      address: json['address'] ?? '',
+      telephone: json['telephone'] ?? '',
+      latitude: (json['latitude'] ?? 0).toDouble(),
+      longitude: (json['longitude'] ?? 0).toDouble(),
+      type: List<String>.from(json['type'] ?? []),
 
-      latitude: (json["latitude"] as num).toDouble(),
-      longitude: (json["longitude"] as num).toDouble(),
+      /// 🔥 FIXED PLUG PARSING
+      plugs: (json['plugs'] as List? ?? [])
+          .map((p) => Plug.fromJson(p))
+          .toList(),
 
-      type: json["type"] != null
-          ? List<String>.from(json["type"])
-          : [],
-
-      amenities: json["amenities"] != null
-          ? List<String>.from(json["amenities"])
-          : [],
-
-      plugs: json["plugs"] != null
-    ? List<Plug>.from(
-        (json["plugs"] as List).map((x) {
-          if (x is Map<String, dynamic>) {
-            return Plug.fromJson(x);
-          } else if (x is String) {
-            return Plug(plug: x, power: "", type: x);
-          }
-          return Plug(plug: "", power: "", type: "");
-        }),
-      )
-    : [],
-
-      time: json["time"],
+      amenities: List<String>.from(json['amenities'] ?? []),
     );
   }
 }
+
+
 
 class Plug {
   final String plug;
@@ -91,5 +72,5 @@ class Plug {
       type: json["type"] ?? "",
     );
   }
-
 }
+

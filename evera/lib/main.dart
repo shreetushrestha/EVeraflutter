@@ -12,6 +12,7 @@ import 'web pages/admin.dart';
 import 'pages/stations_page.dart';
 import 'web pages/CSM.dart';
 import 'web pages/login.web.dart';
+import 'web pages/admin.dart';
 
 
 void main() {
@@ -32,6 +33,7 @@ class MyApp extends StatelessWidget {
           : const LandingPage(),
 
       routes: {
+        '/admin': (context) => const AdminHomePage(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
         '/home': (context) => const Home(),

@@ -42,20 +42,34 @@ class _WebManagerLoginState extends State<WebManagerLogin> {
     );
   }
 
-  void loginManager() async {
-    setState(() => loading = true);
+void loginManager() async {
+  setState(() => loading = true);
 
-    final res = await AuthService().login(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
+  final res = await AuthService().login(
+    emailController.text.trim(),
+    passwordController.text.trim(),
+  );
 
-    if (res != null && res.statusCode == 200) {
+  if (res != null && res.statusCode == 200) {
+    final data = res.data;        // axios / dio response
+    final role = data['user']['role'];
+
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else if (role == 'manager') {
       Navigator.pushReplacementNamed(context, '/mystation');
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
     }
-
-    setState(() => loading = false);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Invalid credentials")),
+    );
   }
+
+  setState(() => loading = false);
+}
+
 
   @override
   Widget build(BuildContext context) {

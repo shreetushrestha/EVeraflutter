@@ -43,10 +43,13 @@ const StationSchema = new mongoose.Schema(
       default: []
     },
 
-    plugs: {
-      type: [String], // e.g. ["Type2", "CCS"]
-      default: []
-    },
+plugs: [
+  {
+    plug: { type: String, required: true },   // Type2, CCS, CHAdeMO
+    power: { type: String, required: true },  // 7.2kW, 50kW, 120kW
+    type: { type: String, required: true }    // AC / DC
+  }
+],
 
     totalSlots: {
       type: Number,

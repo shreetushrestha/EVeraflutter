@@ -5,6 +5,10 @@ import 'package:latlong2/latlong.dart';
 import '../models/evmodel.dart';
 import 'dart:convert';
 
+import 'package:evera/pages/bookings.dart';
+import 'package:evera/pages/search.dart';
+import 'package:evera/pages/profile.dart';
+
 import '../services/station_service.dart';
 import '../services/session.dart';
 
@@ -67,6 +71,12 @@ class _HomeState extends State<Home> {
     userLocation = LatLng(position.latitude, position.longitude);
     setState(() {});
     _mapController.move(userLocation!, 14);
+  }
+
+  String getPlugText(List<Plug> plugs) {
+    if (plugs.isEmpty) return "N/A";
+
+    return plugs.map((p) => "${p.plug} - ${p.power} - ${p.type}").join(", ");
   }
 
   void openStationOverlay(EvModel item) {
@@ -158,7 +168,7 @@ class _HomeState extends State<Home> {
       ),
 
       /// ================= NAV BAR =================
-      bottomNavigationBar: bottomNav(context),
+      bottomNavigationBar: bottomNav(context, 0),
     );
   }
 
@@ -175,49 +185,46 @@ class _HomeState extends State<Home> {
   }
 
   /// ================= STATION CONTAINER =================
-Widget stationsContainer() {
-  if (isLoading) {
-    return const Center(child: CircularProgressIndicator());
-  }
+  Widget stationsContainer() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min, // shrink-wrap the column
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Filter chips row
-        Row(
-          children: [
-            filterChip("All", true),
-            const SizedBox(width: 8),
-            filterChip("Favorites", false),
-          ],
-        ),
-
-        const SizedBox(height: 6), // tiny gap
-
-        // Station cards
-        Flexible(
-          child: ListView.separated(
-            shrinkWrap: true, // make list view take only necessary height
-            physics: const ClampingScrollPhysics(), // no extra bounce
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, index) => stationCard(items[index]),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // shrink-wrap the column
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filter chips row
+          Row(
+            children: [
+              filterChip("All", true),
+              const SizedBox(width: 8),
+              filterChip("Favorites", false),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
-}
 
-
+          const SizedBox(height: 6), // tiny gap
+          // Station cards
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true, // make list view take only necessary height
+              physics: const ClampingScrollPhysics(), // no extra bounce
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, index) => stationCard(items[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget filterChip(String text, bool active) {
     return Container(
@@ -234,7 +241,7 @@ Widget stationsContainer() {
   }
 
   Widget stationCard(EvModel item) {
-    final plug = item.plugs.isNotEmpty ? item.plugs.first : "N/A";
+    final plug = getPlugText(item.plugs);
 
     return GestureDetector(
       onTap: () => openStationOverlay(item),
@@ -319,20 +326,42 @@ Widget stationsContainer() {
   }
 
   /// ================= NAV BAR =================
-  Widget bottomNav(BuildContext context) {
+  Widget bottomNav(BuildContext context, int currentIndex) {
     return BottomNavigationBar(
-      currentIndex: 0,
+      currentIndex: currentIndex,
       type: BottomNavigationBarType.fixed,
       onTap: (index) {
-        if (index == 4) {
-          Navigator.pushNamed(context, '/manager', arguments: Session.token);
+        switch (index) {
+          case 0:
+            Navigator.pushReplacementNamed(context, '/home');
+            break;
+
+          case 1:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchPage()),
+            );
+            break;
+
+          case 2:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const BookingsPage()),
+            );
+            break;
+
+          case 3:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const UserProfilePage()),
+            );
+            break;
         }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
         BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
         BottomNavigationBarItem(icon: Icon(Icons.list), label: "Bookings"),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
       ],
     );
@@ -383,6 +412,25 @@ Widget stationsContainer() {
 
         if (item.telephone.isNotEmpty) infoRow(Icons.phone, item.telephone),
 
+        const SizedBox(height: 16),
+
+        const Text(
+          "Charging Plugs",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+
+        item.plugs.isEmpty
+            ? const Text("No plugs available")
+            : Wrap(
+                spacing: 10,
+                children: item.plugs.map((p) {
+                  return Chip(
+                    label: Text("${p.plug} • ${p.power} • ${p.type}"),
+                    backgroundColor: Colors.green[100],
+                  );
+                }).toList(),
+              ),
         const SizedBox(height: 16),
 
         /// TYPE

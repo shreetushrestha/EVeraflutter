@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/bottom_nav.dart';
 
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
@@ -7,6 +8,8 @@ class SearchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
+      /// BODY
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -15,12 +18,11 @@ class SearchPage extends StatelessWidget {
             children: [
               const Text(
                 "Search",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 16),
+
               TextField(
                 decoration: InputDecoration(
                   hintText: "Search charging stations",
@@ -30,7 +32,9 @@ class SearchPage extends StatelessWidget {
                   ),
                 ),
               ),
+
               const SizedBox(height: 24),
+
               const Text(
                 "Search by places, stations, or addresses.",
                 style: TextStyle(color: Colors.grey),
@@ -39,6 +43,9 @@ class SearchPage extends StatelessWidget {
           ),
         ),
       ),
+
+      /// 🔥 FIXED BOTTOM NAV
+      bottomNavigationBar: bottomNav(context, 1),
     );
   }
 }
