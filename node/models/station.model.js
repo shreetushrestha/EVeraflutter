@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 const StationSchema = new mongoose.Schema(
   {
     name: {
@@ -43,13 +42,16 @@ const StationSchema = new mongoose.Schema(
       default: []
     },
 
-plugs: [
-  {
-    plug: { type: String, required: true },   // Type2, CCS, CHAdeMO
-    power: { type: String, required: true },  // 7.2kW, 50kW, 120kW
-    type: { type: String, required: true }    // AC / DC
-  }
-],
+    plugs: {
+      type: [
+        {
+          plug: { type: String, default: "" },   // Type2, CCS, CHAdeMO
+          power: { type: String, default: "" },  // 7.2kW, 50kW, 120kW
+          type: { type: String, default: "" }    // AC / DC
+        }
+      ],
+      default: [] // if no plugs are provided
+    },
 
     totalSlots: {
       type: Number,
@@ -57,7 +59,6 @@ plugs: [
       min: 1
     },
 
-    // CURRENTLY available slots
     availableSlots: {
       type: Number,
       required: true,
@@ -65,12 +66,13 @@ plugs: [
     },
 
     amenities: {
-      type: [String], // e.g. ["Restroom", "Cafe", "Parking"]
+      type: [String],
       default: []
     },
-    
+
     image: {
-      type: String
+      type: String,
+      default: ""
     },
 
     manager: {
@@ -79,13 +81,11 @@ plugs: [
       required: true
     }
   },
-
   {
     timestamps: true
   }
-
 );
-
 
 const Station = mongoose.model("ChargingStation", StationSchema);
 export default Station;
+

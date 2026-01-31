@@ -20,14 +20,13 @@ export const getAllStations = async (req, res) => {
  */
 export const createStation = async (req, res) => {
   try {
-    // 🔐 Role check
     if (!["admin", "manager"].includes(req.user.role)) {
       return res.status(403).json({
         message: "Only admin or manager can create stations"
       });
     }
-    console.log("Creating station with user:", req.user);
-    const {
+
+    let {
       name,
       city,
       province,
@@ -53,6 +52,17 @@ export const createStation = async (req, res) => {
     // 🧠 Manager can only create station for themselves
     const assignedManager =
       req.user.role === "manager" ? req.user.id : manager;
+
+    // ✅ Normalize plugs array
+    if (!Array.isArray(plugs)) {
+      plugs = []; // default empty array
+    }
+
+    plugs = plugs.map(p => ({
+      plug: p.plug || "",
+      power: p.power || "",
+      type: p.type || ""
+    }));
 
     const newStation = new Station({
       name,
@@ -84,6 +94,7 @@ export const createStation = async (req, res) => {
     });
   }
 };
+
 
 
 /**

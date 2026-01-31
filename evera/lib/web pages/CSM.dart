@@ -39,14 +39,14 @@ class _ManagerPageState extends State<ManagerPage> {
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : stations.isEmpty
-                ? const Center(child: Text("No station found"))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: stations.length,
-                    itemBuilder: (context, index) {
-                      return dashboardCard(stations[index]);
-                    },
-                  ),
+            ? const Center(child: Text("No station found"))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: stations.length,
+                itemBuilder: (context, index) {
+                  return dashboardCard(stations[index]);
+                },
+              ),
       ),
     );
   }
@@ -57,15 +57,15 @@ class _ManagerPageState extends State<ManagerPage> {
     final double utilization =
         (s['totalSlots'] - s['availableSlots']) / s['totalSlots'];
 
+    final plugs = (s['plugs'] as List<dynamic>).cast<Map<String, dynamic>>();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 22),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,15 +78,23 @@ class _ManagerPageState extends State<ManagerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s['name'],
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      s['name'],
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text("${s['city']} • ${s['address']}",
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.grey.shade600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      "${s['city']} • ${s['address']}",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -95,13 +103,15 @@ class _ManagerPageState extends State<ManagerPage> {
                         Text(
                           "Slots: ${s['availableSlots']} / ${s['totalSlots']}",
                           style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w500),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
 
@@ -111,8 +121,10 @@ class _ManagerPageState extends State<ManagerPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Utilization",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Utilization",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
@@ -120,8 +132,7 @@ class _ManagerPageState extends State<ManagerPage> {
                   value: utilization,
                   minHeight: 8,
                   backgroundColor: Colors.grey[200],
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Colors.green),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
                 ),
               ),
             ],
@@ -133,28 +144,30 @@ class _ManagerPageState extends State<ManagerPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              statCard("Active",
-                  s['availableSlots'].toString(), Colors.green),
+              statCard("Active", s['availableSlots'].toString(), Colors.green),
               statCard("Completed", "3", Colors.blue),
               statCard("Pending", "4", Colors.orange),
-              statCard("Total",
-                  s['totalSlots'].toString(), Colors.purple),
+              statCard("Total", s['totalSlots'].toString(), Colors.purple),
             ],
           ),
 
           const SizedBox(height: 22),
 
           /// ========== PLUG MANAGEMENT ==========
-          const Text("Charger Management",
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            "Charger Management",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 10),
 
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: s['plugs']
-                .map<Widget>(
-                  (p) => chargerControl(p),
+            spacing: 8,
+            children: plugs
+                .map(
+                  (p) => infoChip(
+                    "${p['plug']} • ${p['power']} • ${p['type']}",
+                    Icons.electrical_services,
+                  ),
                 )
                 .toList(),
           ),
@@ -162,14 +175,18 @@ class _ManagerPageState extends State<ManagerPage> {
           const SizedBox(height: 22),
 
           /// ========== FULL INFORMATION ==========
-          const Text("Station Information",
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            "Station Information",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
 
           infoRow(Icons.phone, s['telephone']),
           infoRow(Icons.location_city, "Province: ${s['province']}"),
-          infoRow(Icons.my_location,
-              "Lat: ${s['latitude']}  |  Lng: ${s['longitude']}"),
+          infoRow(
+            Icons.my_location,
+            "Lat: ${s['latitude']}  |  Lng: ${s['longitude']}",
+          ),
 
           const SizedBox(height: 12),
 
@@ -177,9 +194,7 @@ class _ManagerPageState extends State<ManagerPage> {
           Wrap(
             spacing: 8,
             children: s['amenities']
-                .map<Widget>(
-                  (a) => infoChip(a, Icons.check_circle),
-                )
+                .map<Widget>((a) => infoChip(a.toString(), Icons.check_circle))
                 .toList(),
           ),
 
@@ -189,17 +204,17 @@ class _ManagerPageState extends State<ManagerPage> {
           Wrap(
             spacing: 8,
             children: s['plugs']
-                .map<Widget>(
-                  (p) => infoChip(p, Icons.electrical_services),
-                )
+                .map<Widget>((p) => infoChip("${p['plug']} • ${p['power']} • ${p['type']}", Icons.electrical_services))
                 .toList(),
           ),
 
           const SizedBox(height: 20),
 
           /// ========== HISTORY ==========
-          const Text("Charging History",
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            "Charging History",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
 
           historyTile("Shamir Maharjan", "Type 2"),
@@ -223,9 +238,10 @@ class _ManagerPageState extends State<ManagerPage> {
       child: Text(
         available ? "Available" : "Full",
         style: TextStyle(
-            fontSize: 12,
-            color: available ? Colors.green : Colors.red,
-            fontWeight: FontWeight.w600),
+          fontSize: 12,
+          color: available ? Colors.green : Colors.red,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -240,13 +256,16 @@ class _ManagerPageState extends State<ManagerPage> {
       ),
       child: Column(
         children: [
-          Text(value,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
           const SizedBox(height: 4),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
         ],
       ),
     );
@@ -286,7 +305,9 @@ class _ManagerPageState extends State<ManagerPage> {
       child: Text(
         text,
         style: TextStyle(
-            fontSize: 11, color: active ? Colors.white : Colors.black),
+          fontSize: 11,
+          color: active ? Colors.white : Colors.black,
+        ),
       ),
     );
   }
@@ -298,9 +319,7 @@ class _ManagerPageState extends State<ManagerPage> {
         children: [
           Icon(icon, size: 18, color: Colors.grey.shade700),
           const SizedBox(width: 10),
-          Expanded(
-              child:
-                  Text(text, style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -324,17 +343,18 @@ class _ManagerPageState extends State<ManagerPage> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-              radius: 18,
-              child: Icon(Icons.person, size: 18)),
+          const CircleAvatar(radius: 18, child: Icon(Icons.person, size: 18)),
           const SizedBox(width: 12),
           Expanded(
-              child: Text(name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w500))),
-          Text("Charger: $charger",
-              style: TextStyle(
-                  fontSize: 12, color: Colors.grey.shade600)),
+            child: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Text(
+            "Charger: $charger",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
         ],
       ),
     );

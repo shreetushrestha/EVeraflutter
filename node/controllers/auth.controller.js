@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.models.js";
 import ChargingStation from "../models/station.model.js";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../config/env.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+
 
 /**
  * SIGN UP
@@ -121,6 +124,96 @@ export const logOut = async (req, res, next) => {
       success: true,
       message: "Logged out successfully"
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate a secure 4-digit numeric token
+    const resetToken = Math.floor(1000 + Math.random() * 9000).toString(); // 1000-9999
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save();
+
+    // Email setup
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Send 4-digit token in email
+    await transporter.sendMail({
+      to: user.email,
+      subject: "EVera Password Reset Token",
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Here is your 4-digit password reset token:</p>
+        <h2>${resetToken}</h2>
+        <p>This token expires in 15 minutes. Use it in the app to reset your password.</p>
+      `,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset token sent to email",
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
+
   } catch (error) {
     next(error);
   }
