@@ -183,29 +183,37 @@ export const forgotPassword = async (req, res, next) => {
 
 export const resetPassword = async (req, res, next) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const { email, token, password } = req.body;
 
-    if (!password || password.length < 6) {
+    if (!email || !token || !password) {
       return res.status(400).json({
-        message: "Password must be at least 6 characters",
+        message: "Email, token and password are required",
+      });
+    }
+
+    // password rule
+    if (!/^(?=.*[A-Z])(?=.*\d).{6,}$/.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 6 characters, include 1 capital letter and 1 number",
       });
     }
 
     const user = await User.findOne({
-      resetPasswordToken: token,
+      email,
+      resetPasswordToken: token.toString(),
       resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(400).json({
-        message: "Invalid or expired reset token",
+        message: "Invalid or expired reset code",
       });
     }
 
     user.password = await bcrypt.hash(password, 10);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
 
     await user.save();
 
@@ -213,7 +221,6 @@ export const resetPassword = async (req, res, next) => {
       success: true,
       message: "Password reset successful",
     });
-
   } catch (error) {
     next(error);
   }
