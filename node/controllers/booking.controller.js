@@ -1,50 +1,59 @@
-import Booking from "../models/booking.model.js";
+import Booking from "../models/booking.models.js";
 
-exports.createBooking = async (req, res) => {
+// Create a new booking
+export const createBooking = async (req, res) => {
   try {
-    const { stationId, date, duration } = req.body;
-    const userId = req.user.id; // from auth middleware
+    const { userId, stationId, plug, startDateTime, duration, price } = req.body;
 
-    if (!stationId || !date || !duration) {
+    if (!userId || !stationId || !startDateTime || !duration || !price) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const amount = duration * 12;
+    const start = new Date(startDateTime);
+    const end = new Date(start.getTime() + (duration === 0.5 ? 30 : duration * 60) * 60000);
 
-    const booking = await Booking.create({
-      userId,
-      stationId,
-      date,
+    const booking = new Booking({
+      user: userId,
+      station: stationId,
+      plug: plug || "",
+      startDateTime: start,
       duration,
-      amount,
-      status: "PENDING",
+      endDateTime: end,
+      price,
+      status: "pending",
     });
 
-    const paymentUrl = generateEsewaUrl(booking);
-
-    res.status(201).json({
-      message: "Booking created",
-      bookingId: booking._id,
-      paymentUrl,
-    });
-  } catch (error) {
-    console.error(error);
+    await booking.save();
+    return res.status(201).json({ message: "Booking created", booking });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-const generateEsewaUrl = (booking) => {
-  const params = new URLSearchParams({
-    amt: booking.amount,
-    psc: 0,
-    pdc: 0,
-    txAmt: 0,
-    tAmt: booking.amount,
-    pid: booking._id.toString(),
-    scd: "EPAYTEST", 
-    su: "http://localhost:5000/api/bookings/payment-success",
-    fu: "http://localhost:5000/api/bookings/payment-failure",
-  });
+// Get bookings for a user
+export const getUserBookings = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const bookings = await Booking.find({ user: userId }).populate("station");
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-  return `https://uat.esewa.com.np/epay/main?${params.toString()}`;
+// Update booking status (cancel, confirm)
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { bookingId, status } = req.body;
+    if (!["pending", "confirmed", "completed", "cancelled"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    const booking = await Booking.findByIdAndUpdate(bookingId, { status }, { new: true });
+    res.json({ message: "Booking updated", booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 };

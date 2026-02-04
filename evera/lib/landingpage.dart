@@ -97,12 +97,12 @@ class LandingPage extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // Login button
+            // Signup button
             SizedBox(
               width: 353,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/signup');
+                  Navigator.pushNamed(context, '/login');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,

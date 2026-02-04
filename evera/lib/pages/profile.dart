@@ -3,7 +3,6 @@ import '../services/auth_service.dart';
 import '../widgets/bottom_nav.dart';
 import '../services/session.dart';
 
-
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
 
@@ -20,17 +19,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
     loadProfile();
   }
 
-void loadProfile() async {
-  final res = await AuthService().getUserById(Session.userId!);
+  void loadProfile() async {
+    final res = await AuthService().getUserById(Session.userId!);
 
-  if (res != null && res.statusCode == 200) {
-    setState(() {
-      user = res.data['data'];   // 🔥 FIX HERE
-    });
+    if (res != null && res.statusCode == 200) {
+      setState(() {
+        user = res.data['data']; // 🔥 FIX HERE
+      });
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -43,15 +40,26 @@ void loadProfile() async {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-
           // Profile Header
           Center(
             child: Column(
               children: [
-                const CircleAvatar(radius: 40, backgroundImage: NetworkImage("https://i.pravatar.cc/150")),
+                const CircleAvatar(
+                  radius: 40,
+                  backgroundImage: NetworkImage("https://i.pravatar.cc/150"),
+                ),
                 const SizedBox(height: 10),
-                Text(user!['name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(user!['email'], style: const TextStyle(color: Colors.grey)),
+                Text(
+                  user!['name'],
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  user!['email'],
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -84,7 +92,16 @@ void loadProfile() async {
 
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {},
+            onPressed: () async {
+              await Session.clear();
+
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
+            },
+
             child: const Text("Logout"),
           ),
         ],
@@ -99,7 +116,13 @@ void loadProfile() async {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Text(title, textAlign: TextAlign.center),
             ],
           ),

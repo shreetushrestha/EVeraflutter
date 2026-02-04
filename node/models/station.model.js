@@ -70,10 +70,15 @@ const StationSchema = new mongoose.Schema(
       default: []
     },
 
-    image: {
-      type: String,
-      default: ""
+    images: {
+      type: [String],
+      default: []
     },
+
+      price: {
+    type: String,
+    default: "Rs. 15/kWh",
+  },
 
     manager: {
       type: mongoose.Schema.Types.ObjectId,

@@ -56,10 +56,11 @@ class AuthService {
           final data = response.data as Map<String, dynamic>;
           if (data['success'] == true && data['token'] != null) {
             final userData = data['user'] as Map<String, dynamic>?;
-            Session.save(
+            await Session.saveLogin(
               token: data['token'],
               role: userData?['role'] ?? 'user',
-              userId: userData?['id'],
+              userId: userData?['id'] ?? '',
+              email: email,
             );
             print('✅ Token saved to Session');
           }

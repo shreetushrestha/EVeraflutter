@@ -13,6 +13,8 @@ class EvModel {
   final double latitude;
   final double longitude;
   final List<String> type;
+  final List<String> images;
+  final String price;
   final List<Plug> plugs;
   final List<String> amenities;
 
@@ -26,6 +28,8 @@ class EvModel {
     required this.latitude,
     required this.longitude,
     required this.type,
+    required this.images,
+    required this.price,
     required this.plugs,
     required this.amenities,
   });
@@ -40,6 +44,7 @@ class EvModel {
       telephone: json['telephone'] ?? '',
       latitude: (json['latitude'] ?? 0).toDouble(),
       longitude: (json['longitude'] ?? 0).toDouble(),
+      images: List<String>.from(json['images'] ?? []),
       type: List<String>.from(json['type'] ?? []),
 
       /// 🔥 FIXED PLUG PARSING
@@ -48,6 +53,8 @@ class EvModel {
           .toList(),
 
       amenities: List<String>.from(json['amenities'] ?? []),
+      price: json['price'] ?? "",
+
     );
   }
 }

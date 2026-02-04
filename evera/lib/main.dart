@@ -1,22 +1,28 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:evera/create.dart';
-import 'package:evera/web%20pages/admin.dart';
-import 'package:evera/pages/bookings.dart';
-import 'package:evera/pages/stations_page.dart';
-import 'package:evera/test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:evera/landingpage.dart';
 import 'package:flutter/material.dart';
-import 'pages/login.dart';
-import 'pages/signup.dart';
 import 'home.dart';
-import 'web pages/admin.dart';
-import 'pages/stations_page.dart';
+
 import 'web pages/CSM.dart';
-import 'web pages/login.web.dart';
-import 'web pages/admin.dart';
+import 'web pages/loginweb.dart';
+import 'web pages/signupweb.dart';
+import 'pages/auth_page.dart'; 
 
+import 'services/session.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  await Hive.openBox('myBox');
+
+  // 🔑 Restore login state
+  Session.loadFromHive();
+
+  runApp(
+    const MyApp(),
+    );
 }
 
 class MyApp extends StatelessWidget {
@@ -27,20 +33,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      // 👇 PLATFORM-BASED ENTRY POINT
       home: kIsWeb
-          ? const WebManagerLogin()   // or ManagerPage()
-          : const LandingPage(),
+          ? const WebManagerLogin()
+          : Session.isLoggedIn
+              ? const Home()
+              : const LandingPage(),
 
       routes: {
-        '/admin': (context) => const AdminHomePage(),
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        '/home': (context) => const Home(),
-        '/form': (context) => const BookingsPage(),
-        '/allstation': (context) => StationsPage(),
-        '/mystation': (context) => const ManagerPage(),
+        '/login': (_) => const AuthPage(),
+        '/home': (_) => const Home(),
+        '/mystation': (_) => const ManagerPage(),
       },
     );
   }
 }
+
+

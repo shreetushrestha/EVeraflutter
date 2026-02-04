@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:evera/pages/bookings.dart';
 import 'package:evera/pages/search.dart';
 import 'package:evera/pages/profile.dart';
+import 'package:evera/pages/bookingpage.dart';
+import '../widgets/bottom_nav.dart';
 
 import '../services/station_service.dart';
 import '../services/session.dart';
@@ -277,6 +279,13 @@ class _HomeState extends State<Home> {
             const SizedBox(height: 6),
             Text("⚡ $plug"),
             const SizedBox(height: 10),
+             Text(
+          "Price: ${item.price}",
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.orange,
+          ),
+        ),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,59 +376,69 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget stationDetailContent(EvModel item) {
-    return Column(
+Widget stationDetailContent(EvModel item) {
+  final imageUrl = item.images.isNotEmpty ? item.images.first : null;
+  final priceStr = item.price; // "Rs. 15/kWh"
+
+  return SingleChildScrollView(
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /// HANDLE
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(4),
+        // IMAGE
+        if (imageUrl != null)
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+            child: Image.network(
+              imageUrl,
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: 180,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image, size: 40),
+              ),
             ),
           ),
-        ),
 
-        /// NAME + STATUS
+        const SizedBox(height: 12),
+
+        // NAME + PRICE
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Text(
                 item.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-            statusBadge(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                priceStr,
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
 
         const SizedBox(height: 12),
 
-        /// LOCATION INFO
-        infoRow(Icons.location_on, item.address),
-        infoRow(
-          Icons.location_city,
-          "${item.city}, ${item.province.isEmpty ? 'N/A' : item.province}",
-        ),
+        // Address + city
+        Text(item.address, style: const TextStyle(fontSize: 14)),
+        Text("${item.city}, ${item.province.isEmpty ? 'N/A' : item.province}", style: const TextStyle(fontSize: 14)),
+        if (item.telephone.isNotEmpty) Text("Tel: ${item.telephone}", style: const TextStyle(fontSize: 14)),
 
-        if (item.telephone.isNotEmpty) infoRow(Icons.phone, item.telephone),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 16),
-
-        const Text(
-          "Charging Plugs",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        // Plugs
+        const Text("Charging Plugs", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-
         item.plugs.isEmpty
             ? const Text("No plugs available")
             : Wrap(
@@ -431,67 +450,55 @@ class _HomeState extends State<Home> {
                   );
                 }).toList(),
               ),
-        const SizedBox(height: 16),
 
-        /// TYPE
-        const Text(
-          "Station Type",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        const SizedBox(height: 12),
+
+        // Station type
+        const Text("Station Type", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Wrap(
           spacing: 8,
-          children: item.type
-              .map(
-                (t) => Chip(label: Text(t), backgroundColor: Colors.blue[100]),
-              )
-              .toList(),
+          children: item.type.map((t) => Chip(label: Text(t), backgroundColor: Colors.blue[100])).toList(),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        /// AMENITIES
+        // Amenities
         const Text("Amenities", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-
         item.amenities.isEmpty
             ? const Text("No amenities available")
             : Wrap(
                 spacing: 10,
                 runSpacing: 6,
-                children: item.amenities.map((a) {
-                  return Chip(
-                    label: Text(a),
-                    backgroundColor: Colors.grey[200],
-                  );
-                }).toList(),
+                children: item.amenities.map((a) => Chip(label: Text(a), backgroundColor: Colors.grey[200])).toList(),
               ),
-
-        const SizedBox(height: 16),
-
-        /// COORDINATES
-        const Text(
-          "Coordinates",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        Text("Latitude: ${item.latitude}"),
-        Text("Longitude: ${item.longitude}"),
 
         const SizedBox(height: 24),
 
-        /// BOOK BUTTON
+        // Book Now
         SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 50,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => BookingPage(station: item)),
+              );
+            },
             child: const Text("Book Now"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple[300],
+            ),
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
+
+
 
   Widget infoRow(IconData icon, String text) {
     return Padding(

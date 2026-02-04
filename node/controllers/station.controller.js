@@ -38,7 +38,7 @@ export const createStation = async (req, res) => {
       totalSlots,
       availableSlots,
       amenities,
-      image,
+      images,
       manager
     } = req.body;
 
@@ -76,7 +76,7 @@ export const createStation = async (req, res) => {
       totalSlots,
       availableSlots,
       amenities,
-      image,
+      images,
       manager: assignedManager
     });
 
