@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'session.dart';
@@ -6,8 +5,7 @@ import 'session.dart';
 class BookingService {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:3000/';
-    if (Platform.isAndroid) return 'http://10.0.2.2:3000/';
-    return 'http://localhost:3000/';
+    return 'http://127.0.0.1:3000/';
   }
 
   late Dio dio;
@@ -61,4 +59,48 @@ class BookingService {
       throw Exception("BookingService error: $e");
     }
   }
+
+Future<List<dynamic>> getUserBookings() async {
+  try {
+    final response = await dio.get(
+      "/api/v1/bookings/user/${Session.userId}",
+    );
+
+    if (response.statusCode == 200) {
+      return response.data;
+    } else {
+      throw Exception("Failed to load bookings");
+    }
+  } catch (e) {
+    print("GetBookings error: $e");
+    throw Exception("GetBookings error");
+  }
 }
+
+Future<bool> cancelBooking(String bookingId) async {
+  try {
+    final res = await dio.post(
+      "/api/v1/bookings/update-status",
+      data: {
+        "bookingId": bookingId,
+        "status": "cancelled",
+      },
+    );
+
+    if (res.statusCode == 200) {
+      print("✅ Booking cancelled");
+      return true;
+    } else {
+      print("❌ Cancel failed ${res.statusCode}: ${res.data}");
+      return false;
+    }
+  } catch (e) {
+    print("❌ Cancel booking error: $e");
+    return false;
+  }
+}
+
+
+}
+
+

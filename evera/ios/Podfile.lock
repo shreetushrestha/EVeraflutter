@@ -1,20 +1,26 @@
 PODS:
+  - esewa_flutter_sdk (0.0.1):
+    - Flutter
   - Flutter (1.0.0)
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
+  - esewa_flutter_sdk (from `.symlinks/plugins/esewa_flutter_sdk/ios`)
   - Flutter (from `Flutter`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
 
 EXTERNAL SOURCES:
+  esewa_flutter_sdk:
+    :path: ".symlinks/plugins/esewa_flutter_sdk/ios"
   Flutter:
     :path: Flutter
   geolocator_apple:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
 
 SPEC CHECKSUMS:
+  esewa_flutter_sdk: a131c0313e0b868aa777247cd24cb219160af6b9
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
 
