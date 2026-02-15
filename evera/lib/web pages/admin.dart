@@ -1,8 +1,72 @@
-
 import 'package:flutter/material.dart';
+import '../models/evmodel.dart';
+import '../services/station_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
-class AdminHomePage extends StatelessWidget {
+class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
+
+  @override
+  State<AdminHomePage> createState() => _AdminHomePageState();
+}
+
+class _AdminHomePageState extends State<AdminHomePage> {
+  List<EvModel> stations = [];
+  bool isLoading = true;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchStations();
+  }
+
+  Future<void> fetchStations() async {
+    try {
+      final rawStations = await StationService().getAllStations();
+
+      setState(() {
+        stations = rawStations
+            .map<EvModel>((e) => EvModel.fromJson(e))
+            .toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Admin station fetch error: $e");
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _showStationInfo(EvModel station) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: Text(station.name),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Address: ${station.address}"),
+              const SizedBox(height: 6),
+              Text("City: ${station.city}"),
+              const SizedBox(height: 6),
+              Text("Price: ${station.price}"),
+              const SizedBox(height: 6),
+              Text("Chargers: ${station.plugs.length}"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,24 +78,26 @@ class AdminHomePage extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _topHeader(),
-                  const SizedBox(height: 20),
-                  _statsCards(),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Row(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _mapSection(),
-                        const SizedBox(width: 20),
-                        _stationList(),
+                        _topHeader(),
+                        const SizedBox(height: 20),
+                        _statsCards(),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              _mapView(),
+                              const SizedBox(width: 20),
+                              _stationList(),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -51,7 +117,6 @@ class AdminHomePage extends StatelessWidget {
           SizedBox(height: 40),
           _SideIcon(icon: Icons.home, label: 'Home', active: true),
           _SideIcon(icon: Icons.search, label: 'Search'),
-          _SideIcon(icon: Icons.list_alt, label: 'Bookings'),
           _SideIcon(icon: Icons.settings, label: 'Settings'),
           _SideIcon(icon: Icons.person, label: 'Profile'),
         ],
@@ -65,7 +130,7 @@ class AdminHomePage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: const [
         Text(
-          "Hello Admin!",
+          "Admin Dashboard",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         CircleAvatar(radius: 22, backgroundColor: Colors.grey),
@@ -76,27 +141,78 @@ class AdminHomePage extends StatelessWidget {
   // ================= STATS =================
   Widget _statsCards() {
     return Row(
-      children: const [
-        _StatCard(title: 'Charging Stations', value: '134', color: Color(0xFFD8C4FF)),
-        SizedBox(width: 16),
-        _StatCard(title: 'Chargers', value: '370', color: Color(0xFFCFF0DD)),
-        SizedBox(width: 16),
-        _StatCard(title: 'Active Stations', value: '134', color: Color(0xFFD8C4FF)),
+      children: [
+        _StatCard(
+          title: 'Charging Stations',
+          value: stations.length.toString(),
+          color: const Color(0xFFD8C4FF),
+        ),
+        const SizedBox(width: 16),
+        _StatCard(
+          title: 'Total Chargers',
+          value: _calculateTotalPlugs().toString(),
+          color: const Color(0xFFCFF0DD),
+        ),
       ],
     );
   }
 
-  // ================= MAP =================
-  Widget _mapSection() {
+  int _calculateTotalPlugs() {
+    int total = 0;
+    for (var station in stations) {
+      total += station.plugs.length;
+    }
+    return total;
+  }
+
+  // ================= MAP PLACEHOLDER =================
+  Widget _mapView() {
     return Expanded(
       flex: 3,
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Center(
-          child: Text('Map View (Flutter Map / Google Map)'),
+          child: FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: LatLng(28.20833, 83.95804),
+              initialZoom: 13,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.evera.app',
+              ),
+
+              /// STATION MARKERS
+              MarkerLayer(
+                markers: stations.map((station) {
+                  return Marker(
+                    width: 44,
+                    height: 44,
+                    point: LatLng(station.latitude, station.longitude),
+                    child: GestureDetector(
+                      onTap: () => _showStationInfo(station),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 6),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.ev_station,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -121,12 +237,10 @@ class AdminHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView(
-                children: const [
-                  _StationCard(),
-                  _StationCard(),
-                  _StationCard(),
-                ],
+              child: ListView.builder(
+                itemCount: stations.length,
+                itemBuilder: (_, index) =>
+                    _StationCard(station: stations[index]),
               ),
             ),
           ],
@@ -143,7 +257,11 @@ class _SideIcon extends StatelessWidget {
   final String label;
   final bool active;
 
-  const _SideIcon({required this.icon, required this.label, this.active = false});
+  const _SideIcon({
+    required this.icon,
+    required this.label,
+    this.active = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +271,10 @@ class _SideIcon extends StatelessWidget {
         children: [
           Icon(icon, color: active ? Colors.white : Colors.white70),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.white)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Colors.white),
+          ),
         ],
       ),
     );
@@ -165,7 +286,11 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _StatCard({required this.title, required this.value, required this.color});
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +306,10 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(title),
             const SizedBox(height: 10),
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),
@@ -190,7 +318,9 @@ class _StatCard extends StatelessWidget {
 }
 
 class _StationCard extends StatelessWidget {
-  const _StationCard();
+  final EvModel station;
+
+  const _StationCard({required this.station});
 
   @override
   Widget build(BuildContext context) {
@@ -203,18 +333,22 @@ class _StationCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('NEA Charging Station', style: TextStyle(fontWeight: FontWeight.bold)),
-              Chip(label: Text('Available')),
-            ],
+        children: [
+          Text(
+            station.name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 6),
-          Text('0.5 km • 150kW DC Fast'),
-          SizedBox(height: 8),
-          Text('Food • WiFi • Parking', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 6),
+          Text(station.address),
+          const SizedBox(height: 6),
+          Text("City: ${station.city}"),
+          const SizedBox(height: 6),
+          Text("Chargers: ${station.plugs.length}"),
+          const SizedBox(height: 6),
+          Text(
+            "Price: ${station.price}",
+            style: const TextStyle(color: Colors.orange),
+          ),
         ],
       ),
     );

@@ -20,9 +20,26 @@ class AuthService {
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 5),
         headers: {"Content-Type": "application/json"},
-        validateStatus: (status) => true,
       ),
     );
+    dio.interceptors.add(
+  InterceptorsWrapper(
+    onRequest: (options, handler) {
+      if (Session.token != null) {
+        options.headers["Authorization"] = "Bearer ${Session.token}";
+      }
+      return handler.next(options);
+    },
+    onError: (e, handler) async {
+      if (e.response?.statusCode == 401) {
+        print("🔐 Token expired. Logging out...");
+        await Session.clear();
+      }
+      return handler.next(e);
+    },
+  ),
+);
+
 
     print("📡 DIO BASE URL => $baseUrl");
   }

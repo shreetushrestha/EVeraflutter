@@ -1,3 +1,4 @@
+import 'package:evera/pages/splashscreen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:evera/landingpage.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'home.dart';
 
 import 'web pages/CSM.dart';
+import 'web pages/admin.dart';
 import 'web pages/loginweb.dart';
 import 'web pages/signupweb.dart';
 import 'pages/auth_page.dart'; 
@@ -36,10 +38,11 @@ class MyApp extends StatelessWidget {
       home: kIsWeb
           ? const WebManagerLogin()
           : Session.isLoggedIn
-              ? const Home()
+              ? const SplashPage()
               : const LandingPage(),
 
       routes: {
+        '/admin': (_) => const AdminHomePage(),
         '/login': (_) => const AuthPage(),
         '/home': (_) => const Home(),
         '/mystation': (_) => const ManagerPage(),

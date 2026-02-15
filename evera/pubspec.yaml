@@ -26,6 +26,8 @@ dependencies:
 
   esewa_flutter_sdk:
     path: ./external_sdk/esewa_sdk/esewa_flutter_sdk
+
+  page_transition: ^2.1.0
   
 dev_dependencies:
   flutter_test:
