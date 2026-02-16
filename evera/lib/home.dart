@@ -185,62 +185,79 @@ class _HomeState extends State<Home> {
       child: const Icon(Icons.ev_station, color: Colors.white),
     );
   }
-
-  /// ================= STATION CONTAINER =================
-  Widget stationsContainer() {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // shrink-wrap the column
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Filter chips row
-          Row(
-            children: [
-              filterChip("All", true),
-              const SizedBox(width: 8),
-              filterChip("Favorites", false),
-            ],
-          ),
-
-          const SizedBox(height: 6), // tiny gap
-          // Station cards
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true, // make list view take only necessary height
-              physics: const ClampingScrollPhysics(), // no extra bounce
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, index) => stationCard(items[index]),
-            ),
-          ),
-        ],
-      ),
-    );
+ String selectedFilter = "All";
+Widget stationsContainer() {
+  if (isLoading) {
+    return const Center(child: CircularProgressIndicator());
   }
 
-  Widget filterChip(String text, bool active) {
-    return Container(
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        /// FILTER ROW
+        Row(
+          children: [
+            filterChip("All"),
+            const SizedBox(width: 8),
+            filterChip("Nearby"),
+            const SizedBox(width: 8),
+            filterChip("Favorites"),
+          ],
+        ),
+
+        /// STATION LIST
+        Flexible(
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const ClampingScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, index) => stationCard(items[index]),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+Widget filterChip(String text) {
+  final isActive = selectedFilter == text;
+
+  return GestureDetector(
+    onTap: () {
+      setState(() {
+        selectedFilter = text;
+      });
+    },
+    child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
-        color: active ? Colors.purple[300] : Colors.grey[200],
+        color: isActive ? Colors.purple[300] : Colors.grey[200],
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: TextStyle(color: active ? Colors.white : Colors.black),
+        style: TextStyle(
+          color: isActive ? Colors.white : Colors.black,
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+ 
+
 
   Widget stationCard(EvModel item) {
     final plug = getPlugText(item.plugs);

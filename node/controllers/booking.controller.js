@@ -35,13 +35,43 @@ export const createBooking = async (req, res) => {
 export const getUserBookings = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const bookings = await Booking.find({ user: userId }).populate("station");
+    const now = new Date();
+
+    await Booking.updateMany(
+      {
+        user: userId,
+        status: { $in: ["pending", "confirmed"] },
+        endDateTime: { $lt: now }
+      },
+      {
+        $set: { status: "completed" }
+      }
+    );
+
+    await Booking.updateMany(
+      {
+        user: userId,
+        status: "pending",
+        startDateTime: { $lte: now },
+        endDateTime: { $gt: now }
+      },
+      {
+        $set: { status: "confirmed" }
+      }
+    );
+
+    const bookings = await Booking.find({ user: userId })
+      .populate("station")
+      .sort({ startDateTime: -1 });
+
     res.json(bookings);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Update booking status (cancel, confirm)
 export const updateBookingStatus = async (req, res) => {
