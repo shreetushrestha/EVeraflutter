@@ -65,6 +65,12 @@ const StationSchema = new mongoose.Schema(
       min: 0
     },
 
+    isOperational: {
+      type: Boolean,
+      default: true
+    },
+
+
     amenities: {
       type: [String],
       default: []
@@ -75,10 +81,10 @@ const StationSchema = new mongoose.Schema(
       default: []
     },
 
-      price: {
-    type: String,
-    default: "Rs. 15/kWh",
-  },
+    price: {
+      type: String,
+      default: "Rs. 15/kWh",
+    },
 
     manager: {
       type: mongoose.Schema.Types.ObjectId,

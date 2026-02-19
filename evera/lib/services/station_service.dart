@@ -60,5 +60,18 @@ class StationService {
     throw Exception(
       response.data?['message'] ?? 'Failed to fetch my stations',
     );
+
+    
   }
+
+  Future toggleOperational(String stationId, bool isOperational) async {
+  await dio.patch(
+    "/stations/toggle-operational",
+    data: {
+      "stationId": stationId,
+      "isOperational": isOperational,
+    },
+  );
+}
+
 }

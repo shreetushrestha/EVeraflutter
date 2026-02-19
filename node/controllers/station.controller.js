@@ -198,3 +198,34 @@ export const getMyStations = async (req, res, next) => {
   }
 };
 
+
+export const toggleOperational = async (req, res) => {
+  try {
+    const { stationId, isOperational } = req.body;
+
+    const station = await Station.findById(stationId);
+
+    if (!station) {
+      return res.status(404).json({ message: "Station not found" });
+    }
+
+    if (
+      req.user.role !== "admin" &&
+      station.manager.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    station.isOperational = isOperational;
+    await station.save();
+
+    res.status(200).json({
+      message: "Operational status updated",
+      station
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

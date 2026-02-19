@@ -185,79 +185,72 @@ class _HomeState extends State<Home> {
       child: const Icon(Icons.ev_station, color: Colors.white),
     );
   }
- String selectedFilter = "All";
-Widget stationsContainer() {
-  if (isLoading) {
-    return const Center(child: CircularProgressIndicator());
+
+  String selectedFilter = "All";
+  Widget stationsContainer() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// FILTER ROW
+          Row(
+            children: [
+              filterChip("All"),
+              const SizedBox(width: 8),
+              filterChip("Nearby"),
+              const SizedBox(width: 8),
+              filterChip("Favorites"),
+            ],
+          ),
+
+          /// STATION LIST
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const ClampingScrollPhysics(),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, index) => stationCard(items[index]),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+  Widget filterChip(String text) {
+    final isActive = selectedFilter == text;
 
-        /// FILTER ROW
-        Row(
-          children: [
-            filterChip("All"),
-            const SizedBox(width: 8),
-            filterChip("Nearby"),
-            const SizedBox(width: 8),
-            filterChip("Favorites"),
-          ],
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedFilter = text;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.purple[300] : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
         ),
-
-        /// STATION LIST
-        Flexible(
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const ClampingScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, index) => stationCard(items[index]),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-Widget filterChip(String text) {
-  final isActive = selectedFilter == text;
-
-  return GestureDetector(
-    onTap: () {
-      setState(() {
-        selectedFilter = text;
-      });
-    },
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.purple[300] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isActive ? Colors.white : Colors.black,
+        child: Text(
+          text,
+          style: TextStyle(color: isActive ? Colors.white : Colors.black),
         ),
       ),
-    ),
-  );
-}
-
-
- 
-
+    );
+  }
 
   Widget stationCard(EvModel item) {
     final plug = getPlugText(item.plugs);
@@ -296,13 +289,10 @@ Widget filterChip(String text) {
             const SizedBox(height: 6),
             Text("⚡ $plug"),
             const SizedBox(height: 10),
-             Text(
-          "Price: ${item.price}",
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.orange,
-          ),
-        ),
+            Text(
+              "Price: ${item.price}",
+              style: const TextStyle(fontSize: 16, color: Colors.orange),
+            ),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,129 +383,167 @@ Widget filterChip(String text) {
     );
   }
 
-Widget stationDetailContent(EvModel item) {
-  final imageUrl = item.images.isNotEmpty ? item.images.first : null;
-  final priceStr = item.price; // "Rs. 15/kWh"
+  Widget stationDetailContent(EvModel item) {
+    final imageUrl = item.images.isNotEmpty ? item.images.first : null;
+    final priceStr = item.price; // "Rs. 15/kWh"
 
-  return SingleChildScrollView(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // IMAGE
-        if (imageUrl != null)
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: Image.network(
-              imageUrl,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // IMAGE
+          if (imageUrl != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
+              child: Image.network(
+                imageUrl,
                 height: 180,
-                color: Colors.grey[300],
-                child: const Icon(Icons.image, size: 40),
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image, size: 40),
+                ),
               ),
             ),
+
+          const SizedBox(height: 12),
+
+          // NAME + PRICE
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  priceStr,
+                  style: const TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // NAME + PRICE
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                item.name,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+          // Address + city
+          Text(item.address, style: const TextStyle(fontSize: 14)),
+          Text(
+            "${item.city}, ${item.province.isEmpty ? 'N/A' : item.province}",
+            style: const TextStyle(fontSize: 14),
+          ),
+          if (item.telephone.isNotEmpty)
+            Text(
+              "Tel: ${item.telephone}",
+              style: const TextStyle(fontSize: 14),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.orange[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                priceStr,
-                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Address + city
-        Text(item.address, style: const TextStyle(fontSize: 14)),
-        Text("${item.city}, ${item.province.isEmpty ? 'N/A' : item.province}", style: const TextStyle(fontSize: 14)),
-        if (item.telephone.isNotEmpty) Text("Tel: ${item.telephone}", style: const TextStyle(fontSize: 14)),
+          // Plugs
+          const Text(
+            "Charging Plugs",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          item.plugs.isEmpty
+              ? const Text("No plugs available")
+              : Wrap(
+                  spacing: 10,
+                  children: item.plugs.map((p) {
+                    return Chip(
+                      label: Text("${p.plug} • ${p.power} • ${p.type}"),
+                      backgroundColor: Colors.green[100],
+                    );
+                  }).toList(),
+                ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Plugs
-        const Text("Charging Plugs", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        item.plugs.isEmpty
-            ? const Text("No plugs available")
-            : Wrap(
-                spacing: 10,
-                children: item.plugs.map((p) {
-                  return Chip(
-                    label: Text("${p.plug} • ${p.power} • ${p.type}"),
-                    backgroundColor: Colors.green[100],
-                  );
-                }).toList(),
-              ),
+          // Station type
+          const Text(
+            "Station Type",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: item.type
+                .map(
+                  (t) =>
+                      Chip(label: Text(t), backgroundColor: Colors.blue[100]),
+                )
+                .toList(),
+          ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Station type
-        const Text("Station Type", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          children: item.type.map((t) => Chip(label: Text(t), backgroundColor: Colors.blue[100])).toList(),
-        ),
+          // Amenities
+          const Text(
+            "Amenities",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          item.amenities.isEmpty
+              ? const Text("No amenities available")
+              : Wrap(
+                  spacing: 10,
+                  runSpacing: 6,
+                  children: item.amenities
+                      .map(
+                        (a) => Chip(
+                          label: Text(a),
+                          backgroundColor: Colors.grey[200],
+                        ),
+                      )
+                      .toList(),
+                ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 24),
 
-        // Amenities
-        const Text("Amenities", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        item.amenities.isEmpty
-            ? const Text("No amenities available")
-            : Wrap(
-                spacing: 10,
-                runSpacing: 6,
-                children: item.amenities.map((a) => Chip(label: Text(a), backgroundColor: Colors.grey[200])).toList(),
-              ),
-
-        const SizedBox(height: 24),
-
-        // Book Now
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => BookingPage(station: item)),
-              );
-            },
-            child: const Text("Book Now"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple[300],
+          // Book Now
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: item.isOperational
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BookingPage(station: item),
+                        ),
+                      );
+                    }
+                  : null,
+              child: const Text("Book Now"),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-
+        ],
+      ),
+    );
+  }
 
   Widget infoRow(IconData icon, String text) {
     return Padding(

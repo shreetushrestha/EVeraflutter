@@ -10,6 +10,14 @@ import connectToDatabase from './database/mongodb.js';
 import errorMiddleware from './middlewares/error.middleware.js';
 import bookingRouter from './routes/bookings.route.js';
 
+import cron from "node-cron";
+import { autoUpdateBookings } from "./controllers/booking.controller.js";
+
+cron.schedule("* * * * *", async () => {
+  await autoUpdateBookings();
+});
+
+
 const app = express();
 
 app.use(cors({

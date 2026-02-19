@@ -18,7 +18,7 @@ const BookingSchema = new mongoose.Schema({
   price: { type: Number, required: true }, // store as number
   status: {
     type: String,
-    enum: ["pending", "confirmed", "completed", "cancelled"],
+enum: ["pending", "confirmed", "active", "completed", "cancelled"],
     default: "pending"
   },
 }, { timestamps: true });
