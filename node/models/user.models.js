@@ -58,6 +58,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
   },
 
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ChargingStation" // matches the model name used in station.model.js
+  }]
+
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);

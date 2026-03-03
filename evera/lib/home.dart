@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:http/http.dart' as http;
 import '../models/evmodel.dart';
 import 'dart:convert';
 
@@ -29,11 +30,37 @@ class _HomeState extends State<Home> {
   LatLng? userLocation;
   bool isLoading = true;
 
+  List<LatLng> routePoints = [];
+  bool showRoute = false;
+
+  double nearbyRadiusKm = 10;
+  Set<String> favoriteIds = {};
+
   @override
   void initState() {
     super.initState();
     fetchStations();
     getUserLocation();
+    loadFavorites();
+  }
+
+  Future<void> loadFavorites() async {
+    try {
+      final favorites = await StationService().getFavorites();
+      if (mounted) {
+        setState(() {
+          favoriteIds = favorites?.whereType<String>().toSet() ?? {};
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load favorites: $e");
+      // Continue without favorites if loading fails
+      if (mounted) {
+        setState(() {
+          favoriteIds = {};
+        });
+      }
+    }
   }
 
   Future<void> fetchStations() async {
@@ -75,10 +102,69 @@ class _HomeState extends State<Home> {
     _mapController.move(userLocation!, 14);
   }
 
+  Future<void> getRoute(LatLng destination) async {
+    if (userLocation == null) return;
+
+    final start = "${userLocation!.longitude},${userLocation!.latitude}";
+    final end = "${destination.longitude},${destination.latitude}";
+
+    final url =
+        "https://router.project-osrm.org/route/v1/driving/$start;$end?overview=full&geometries=geojson";
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
+
+      setState(() {
+        routePoints = coordinates.map((c) => LatLng(c[1], c[0])).toList();
+        showRoute = true;
+      });
+
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(routePoints),
+          padding: const EdgeInsets.all(50),
+        ),
+      );
+    }
+  }
+
   String getPlugText(List<Plug> plugs) {
     if (plugs.isEmpty) return "N/A";
 
     return plugs.map((p) => "${p.plug} - ${p.power} - ${p.type}").join(", ");
+  }
+
+  List<EvModel> get filteredStations {
+    if (selectedFilter == "All") {
+      return items;
+    }
+
+    if (selectedFilter == "Nearby" && userLocation != null) {
+      return items.where((station) {
+        final distanceInMeters = Geolocator.distanceBetween(
+          userLocation!.latitude,
+          userLocation!.longitude,
+          station.latitude,
+          station.longitude,
+        );
+
+        final distanceInKm = distanceInMeters / 1000;
+
+        return distanceInKm <= nearbyRadiusKm;
+      }).toList();
+    }
+
+    if (selectedFilter == "Favorites") {
+      return items
+          .where((station) => favoriteIds.contains(station.id))
+          .toList();
+    }
+
+    return items;
   }
 
   void openStationOverlay(EvModel item) {
@@ -155,6 +241,16 @@ class _HomeState extends State<Home> {
                   );
                 }).toList(),
               ),
+              if (showRoute)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      strokeWidth: 5,
+                      color: Colors.blue,
+                    ),
+                  ],
+                ),
             ],
           ),
 
@@ -219,9 +315,9 @@ class _HomeState extends State<Home> {
             child: ListView.separated(
               shrinkWrap: true,
               physics: const ClampingScrollPhysics(),
-              itemCount: items.length,
+              itemCount: filteredStations.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, index) => stationCard(items[index]),
+              itemBuilder: (_, index) => stationCard(filteredStations[index]),
             ),
           ),
         ],
@@ -254,6 +350,18 @@ class _HomeState extends State<Home> {
 
   Widget stationCard(EvModel item) {
     final plug = getPlugText(item.plugs);
+    final isFavorite = favoriteIds.contains(item.id);
+
+    double? distanceKm;
+    if (userLocation != null) {
+      final meters = Geolocator.distanceBetween(
+        userLocation!.latitude,
+        userLocation!.longitude,
+        item.latitude,
+        item.longitude,
+      );
+      distanceKm = meters / 1000;
+    }
 
     return GestureDetector(
       onTap: () => openStationOverlay(item),
@@ -280,12 +388,31 @@ class _HomeState extends State<Home> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                statusBadge(),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => toggleFavorite(item.id),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    statusBadge(),
+                  ],
+                ),
               ],
             ),
 
             const SizedBox(height: 6),
             Text(item.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 6),
+            if (distanceKm != null)
+              Text(
+                "${distanceKm.toStringAsFixed(1)} km away",
+                style: const TextStyle(color: Colors.grey),
+              ),
             const SizedBox(height: 6),
             Text("⚡ $plug"),
             const SizedBox(height: 10),
@@ -540,9 +667,62 @@ class _HomeState extends State<Home> {
               child: const Text("Book Now"),
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          // Directions
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.directions),
+              label: const Text("Directions"),
+              onPressed: () {
+                Navigator.pop(context); // close bottom sheet
+
+                getRoute(LatLng(item.latitude, item.longitude));
+              },
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> toggleFavorite(String stationId) async {
+    if (stationId.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid station ID")));
+      return;
+    }
+
+    try {
+      final isFavorite = favoriteIds.contains(stationId);
+
+      if (isFavorite) {
+        await StationService().removeFavorite(stationId);
+        if (mounted) {
+          setState(() {
+            favoriteIds.remove(stationId);
+          });
+        }
+      } else {
+        await StationService().addFavorite(stationId);
+        if (mounted) {
+          setState(() {
+            favoriteIds.add(stationId);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to toggle favorite for $stationId: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.toString().substring(0, 50)}")),
+        );
+      }
+    }
   }
 
   Widget infoRow(IconData icon, String text) {

@@ -73,7 +73,10 @@ class _AuthPageState extends State<AuthPage> {
           email: user['email'],
         );
 
-        Navigator.pushReplacementNamed(context, '/home');
+        // Navigator.pushReplacementNamed(context, '/home');
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        }
       } else {
         showToast("Invalid email or password");
       }

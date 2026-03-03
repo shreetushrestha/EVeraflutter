@@ -9,6 +9,7 @@ import { PORT } from './config/env.js';
 import connectToDatabase from './database/mongodb.js';
 import errorMiddleware from './middlewares/error.middleware.js';
 import bookingRouter from './routes/bookings.route.js';
+import favoritesRouter from './routes/favorite.route.js';
 
 import cron from "node-cron";
 import { autoUpdateBookings } from "./controllers/booking.controller.js";
@@ -39,6 +40,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/stations', stationRouter);
 app.use('/api/v1/bookings', bookingRouter);
+app.use('/api/v1/favorites', favoritesRouter);
 
 /* =======================
    ERROR HANDLER

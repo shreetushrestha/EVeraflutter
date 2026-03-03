@@ -13,9 +13,7 @@ class StationService {
   }
 
   StationService() {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
 
     if (Session.token != null && Session.token!.isNotEmpty) {
       headers['Authorization'] = 'Bearer ${Session.token}';
@@ -38,15 +36,14 @@ class StationService {
       final data = response.data;
 
       // Backend might return list directly OR wrapped
-      final List stations =
-          data is List ? data : (data['data'] ?? data['stations']);
+      final List stations = data is List
+          ? data
+          : (data['data'] ?? data['stations']);
 
       return List<Map<String, dynamic>>.from(stations);
     }
 
-    throw Exception(
-      response.data?['message'] ?? 'Failed to fetch stations',
-    );
+    throw Exception(response.data?['message'] ?? 'Failed to fetch stations');
   }
 
   /// ================= GET MY STATIONS =================
@@ -57,21 +54,108 @@ class StationService {
       return List<Map<String, dynamic>>.from(response.data['data']);
     }
 
-    throw Exception(
-      response.data?['message'] ?? 'Failed to fetch my stations',
-    );
-
-    
+    throw Exception(response.data?['message'] ?? 'Failed to fetch my stations');
   }
 
   Future toggleOperational(String stationId, bool isOperational) async {
-  await dio.patch(
-    "/stations/toggle-operational",
-    data: {
-      "stationId": stationId,
-      "isOperational": isOperational,
-    },
-  );
-}
+    await dio.patch(
+      "/stations/toggle-operational",
+      data: {"stationId": stationId, "isOperational": isOperational},
+    );
+  }
 
+  /// ================= FAVORITES =================
+  Future<void> addFavorite(String stationId) async {
+    final response = await dio.post('api/v1/favorites/$stationId');
+    debugPrint(
+      'addFavorite status: ${response.statusCode}, body: ${response.data}',
+    );
+
+    if (response.statusCode == null ||
+        response.statusCode! < 200 ||
+        response.statusCode! >= 300) {
+      // avoid indexing into a non-map body
+      String msg = 'Failed to add favorite';
+      if (response.data is Map && response.data['message'] != null) {
+        msg = response.data['message'].toString();
+      }
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> removeFavorite(String stationId) async {
+    final response = await dio.post(
+      'api/v1/favorites/removeFavorite/$stationId',
+    );
+    debugPrint(
+      'removeFavorite status: ${response.statusCode}, body: ${response.data}',
+    );
+
+    if (response.statusCode == null ||
+        response.statusCode! < 200 ||
+        response.statusCode! >= 300) {
+      String msg = 'Failed to remove favorite';
+      if (response.data is Map && response.data['message'] != null) {
+        msg = response.data['message'].toString();
+      }
+      throw Exception(msg);
+    }
+  }
+
+  Future<List<String>> getFavorites() async {
+    try {
+      final response = await dio.get('api/v1/favorites');
+      debugPrint('Favorites status: ${response.statusCode}');
+      debugPrint('Favorites Response (raw): ${response.data}');
+      final data = response.data;
+
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        if (data == null) {
+          return [];
+        }
+
+        // Handle different response formats
+        List? favorites;
+        if (data is List) {
+          favorites = data;
+          debugPrint('Favorites is a List');
+        } else if (data is Map) {
+          favorites = data['favorites'];
+          debugPrint('Favorites extracted from Map: $favorites');
+        }
+
+        if (favorites == null) {
+          debugPrint('Favorites is null, returning empty list');
+          return [];
+        }
+
+        if (favorites is! List) {
+          debugPrint('Unexpected favorites format: ${favorites.runtimeType}');
+          return [];
+        }
+
+        // Extract IDs from the list safely
+        final result = <String>[];
+        for (final fav in favorites) {
+          if (fav is String) {
+            result.add(fav);
+          } else if (fav is Map) {
+            final id = (fav['_id'] ?? fav['id'] ?? '').toString();
+            if (id.isNotEmpty) result.add(id);
+          }
+        }
+        debugPrint('Parsed favorite IDs: $result');
+        return result;
+      }
+
+      throw Exception(
+        'Failed to fetch favorites (${response.statusCode}): ${response.data}',
+      );
+    } catch (e) {
+      debugPrint('getFavorites error: $e');
+      rethrow;
+    }
+  }
 }
