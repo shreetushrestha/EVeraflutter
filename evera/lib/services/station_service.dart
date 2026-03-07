@@ -131,11 +131,6 @@ class StationService {
           return [];
         }
 
-        if (favorites is! List) {
-          debugPrint('Unexpected favorites format: ${favorites.runtimeType}');
-          return [];
-        }
-
         // Extract IDs from the list safely
         final result = <String>[];
         for (final fav in favorites) {
@@ -157,5 +152,18 @@ class StationService {
       debugPrint('getFavorites error: $e');
       rethrow;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> searchStations(String keyword) async {
+    final response = await dio.get(
+      'api/v1/stations/search',
+      queryParameters: {'keyword': keyword},
+    );
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(response.data['data']);
+    }
+
+    throw Exception('Failed to search stations');
   }
 }

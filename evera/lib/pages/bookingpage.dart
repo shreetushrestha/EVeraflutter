@@ -7,6 +7,7 @@ import 'esewa_service.dart';
 
 class BookingPage extends StatefulWidget {
   final EvModel station;
+
   const BookingPage({super.key, required this.station});
 
   @override
@@ -14,14 +15,16 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
-  final Color primary = const Color(0xFF67C090);
-  final Color secondary = const Color(0xFFC06797);
+  final Color primary = const Color(0xFFC06797);
 
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedTime = TimeOfDay.now();
+
   double selectedDuration = 1;
+
   int pricePerHour = 15;
   double totalPrice = 0;
+
   String userMobile = "";
 
   @override
@@ -34,7 +37,9 @@ class _BookingPageState extends State<BookingPage> {
 
   void parseStationPrice() {
     final priceStr = widget.station.price.replaceAll(RegExp(r'[^0-9]'), '');
-    if (priceStr.isNotEmpty) pricePerHour = int.parse(priceStr);
+    if (priceStr.isNotEmpty) {
+      pricePerHour = int.parse(priceStr);
+    }
   }
 
   void calculateTotalPrice() {
@@ -47,6 +52,7 @@ class _BookingPageState extends State<BookingPage> {
     if (userId == null) return;
 
     final userResp = await AuthService().getUserById(userId);
+
     if (userResp != null && userResp.statusCode == 200) {
       setState(() {
         userMobile = userResp.data['phone'] ?? "";
@@ -109,20 +115,15 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
-  Widget infoCard({required IconData icon, required String title}) {
+  Widget sectionCard({required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: secondary),
-          const SizedBox(width: 10),
-          Expanded(child: Text(title)),
-        ],
-      ),
+      child: child,
     );
   }
 
@@ -132,142 +133,163 @@ class _BookingPageState extends State<BookingPage> {
         "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
     final timeText = selectedTime.format(context);
 
+    final imageUrl = widget.station.images.isNotEmpty
+        ? widget.station.images.first
+        : null;
+
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+
       appBar: AppBar(
-        backgroundColor: primary,
-        title: const Text("Book Station"),
-        leading: const BackButton(color: Colors.white),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
+        title: const Text("Book Charging Slot"),
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.station.images.isNotEmpty)
+            /// STATION IMAGE
+            if (imageUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(18),
                 child: Image.network(
-                  widget.station.images.first,
-                  height: 200,
+                  imageUrl,
+                  height: 190,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
+
             const SizedBox(height: 16),
+
+            /// STATION NAME
             Text(
               widget.station.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 6),
-            infoCard(
-              icon: Icons.location_on,
-              title: "${widget.station.city}, ${widget.station.province}",
+
+            Text(
+              widget.station.address,
+              style: const TextStyle(color: Colors.grey),
             ),
-            const SizedBox(height: 10),
-            infoCard(
-              icon: Icons.electric_car,
-              title: widget.station.plugs.map((p) => p.plug).join(", "),
-            ),
+
             const SizedBox(height: 20),
-            GestureDetector(
-              onTap: pickDateTime,
-              child: infoCard(
-                icon: Icons.access_time,
-                title: "$dateText  •  $timeText",
+
+            /// DATE TIME
+            sectionCard(
+              child: InkWell(
+                onTap: pickDateTime,
+                child: Row(
+                  children: [
+                    const Icon(Icons.schedule),
+                    const SizedBox(width: 10),
+                    Text("$dateText  •  $timeText"),
+                    const Spacer(),
+                    const Icon(Icons.arrow_forward_ios, size: 14),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "Select Duration",
-              style: TextStyle(fontWeight: FontWeight.bold),
+
+            /// DURATION TITLE
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text(
+                "Charging Duration",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            const SizedBox(height: 10),
+
+            /// DURATION SELECTOR
             Wrap(
               spacing: 10,
-              children: <double>[0.5, 1, 2, 3].map((d) {
-                final isSelected = selectedDuration == d;
+              children: <double>[1, 2, 3, 4].map((d) {
+                final selected = selectedDuration == d;
 
                 return ChoiceChip(
-                  label: Text(d == 0.5 ? "30 min" : "${d.toInt()} hr"),
-                  selected: isSelected,
-                  selectedColor: secondary,
+                  label: Text("${d.toInt()} hr"),
+                  selected: selected,
+                  selectedColor: primary,
+                  backgroundColor: Colors.grey.shade200,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : Colors.black,
+                  ),
                   onSelected: (_) {
-                    selectedDuration = d;
-                    calculateTotalPrice();
+                    setState(() {
+                      selectedDuration = d;
+                      calculateTotalPrice();
+                    });
                   },
                 );
               }).toList(),
             ),
-            const SizedBox(height: 20),
-            Text(
-              "Total Price: Rs ${totalPrice.toInt()}",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: secondary,
-              ),
-            ),
-            const SizedBox(height: 24),
 
-            // Row of Confirm Booking & eSewa Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: secondary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: confirmBooking,
-                      child: const Text(
-                        "Confirm Booking",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+            const SizedBox(height: 20),
+
+            /// PRICE CARD
+            sectionCard(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Price", style: TextStyle(fontSize: 16)),
+                  Text(
+                    "Rs ${totalPrice.toInt()}",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primary,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-  child: SizedBox(
-    height: 52,
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green.shade700,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
-      onPressed: () {
-        EsewaService.pay(
-          amount: totalPrice.toInt(),
-          productName: "EV Station Booking",
-          onSuccess: () async {
-            // Only confirm booking if payment succeeds
-            await confirmBooking();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Payment Successful & Booking Confirmed")),
-            );
-          },
-          onFailure: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Payment Failed")),
-            );
-          },
-        );
-      },
-      child: const Text(
-        "Pay with eSewa",
-        style: TextStyle(color: Colors.white, fontSize: 16),
-      ),
-    ),
-  ),
-),
+                ],
+              ),
+            ),
 
-              ],
+            const SizedBox(height: 10),
+
+            /// ESEWA PAYMENT
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {
+                  EsewaService.pay(
+                    amount: totalPrice.toInt(),
+                    productName: "EV Station Booking",
+                    onSuccess: () async {
+                      // Only confirm booking if payment succeeds
+                      await confirmBooking();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Payment Successful & Booking Confirmed",
+                          ),
+                        ),
+                      );
+                    },
+                    onFailure: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Payment Failed")),
+                      );
+                    },
+                  );
+                },
+                child: const Text(
+                  "Pay with eSewa",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
             ),
           ],
         ),

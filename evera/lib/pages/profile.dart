@@ -91,7 +91,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
           const SizedBox(height: 20),
 
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 193, 37, 25),
+            ),
             onPressed: () async {
               await Session.clear();
 
@@ -102,7 +104,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               );
             },
 
-            child: const Text("Logout"),
+            child: const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

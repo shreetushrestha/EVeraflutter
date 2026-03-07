@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
+
 import '../pages/bookings.dart';
 import '../pages/profile.dart';
 import '../pages/search.dart';
 import '../home.dart';
+import '../models/evmodel.dart';
 
-Widget bottomNav(BuildContext context, int index) {
+/// Bottom navigation bar helper.  The extra arguments are used when
+/// navigating to the search page so that it can reuse already-fetched
+/// station data instead of hitting the network again.
+///
+/// All parameters are optional and default to empty, allowing existing
+/// callers to remain unchanged.
+Widget bottomNav(
+  BuildContext context,
+  int index, {
+  List<EvModel> stations = const [],
+  Set<String> favoriteIds = const {},
+  LatLng? userLocation,
+}) {
   return BottomNavigationBar(
     currentIndex: index,
     type: BottomNavigationBarType.fixed,
@@ -13,16 +28,34 @@ Widget bottomNav(BuildContext context, int index) {
 
       switch (i) {
         case 0:
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const Home()),
+          );
           break;
         case 1:
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SearchPage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SearchPage(
+                stations: stations,
+                favoriteIds: favoriteIds,
+                userLocation: userLocation,
+              ),
+            ),
+          );
           break;
         case 2:
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BookingsPage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const BookingsPage()),
+          );
           break;
         case 3:
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const UserProfilePage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserProfilePage()),
+          );
           break;
       }
     },

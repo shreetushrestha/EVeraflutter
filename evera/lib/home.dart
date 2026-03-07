@@ -32,6 +32,7 @@ class _HomeState extends State<Home> {
 
   List<LatLng> routePoints = [];
   bool showRoute = false;
+  bool showStationList = true;
 
   double nearbyRadiusKm = 10;
   Set<String> favoriteIds = {};
@@ -254,14 +255,47 @@ class _HomeState extends State<Home> {
             ],
           ),
 
-          /// ================= STATION LIST =================
+          /// ZOOM OUT BUTTON
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 300,
-            child: stationsContainer(),
+            top: 410,
+            right: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white,
+              child: const Icon(Icons.zoom_out_map, color: Colors.black),
+              onPressed: () {
+                _mapController.move(_mapController.camera.center, 10);
+
+                setState(() {
+                  showStationList = false;
+                });
+              },
+            ),
           ),
+          Positioned(
+            top: 470,
+            right: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white,
+              child: const Icon(Icons.list, color: Colors.black),
+              onPressed: () {
+                setState(() {
+                  showStationList = true;
+                });
+              },
+            ),
+          ),
+
+          /// ================= STATION LIST =================
+          if (showStationList)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 300,
+              child: stationsContainer(),
+            ),
         ],
       ),
 
@@ -482,7 +516,13 @@ class _HomeState extends State<Home> {
           case 1:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const SearchPage()),
+              MaterialPageRoute(
+                builder: (_) => SearchPage(
+                  stations: items,
+                  favoriteIds: favoriteIds,
+                  userLocation: userLocation,
+                ),
+              ),
             );
             break;
 

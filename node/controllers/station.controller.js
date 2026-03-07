@@ -229,3 +229,20 @@ export const toggleOperational = async (req, res) => {
   }
 };
 
+export const searchStations = async (req, res) => {
+  try {
+    const { keyword } = req.query;
+
+    if (!keyword) {
+      return res.status(400).json({ message: "Keyword is required" });
+    }
+
+    const stations = await Station.find({
+      name: { $regex: keyword, $options: "i" }
+    });
+
+    res.status(200).json({ data: stations });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
