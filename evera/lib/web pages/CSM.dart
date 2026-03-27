@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/station_service.dart';
+import '../services/bookingservice.dart';
 
 class ManagerPage extends StatefulWidget {
   const ManagerPage({super.key});
@@ -11,11 +12,13 @@ class ManagerPage extends StatefulWidget {
 class _ManagerPageState extends State<ManagerPage> {
   bool loading = true;
   List stations = [];
+  List bookings = [];
 
   @override
   void initState() {
     super.initState();
     fetchStations();
+    fetchBookings();
   }
 
   Future<void> fetchStations() async {
@@ -31,6 +34,17 @@ class _ManagerPageState extends State<ManagerPage> {
     }
   }
 
+  Future<void> fetchBookings() async {
+    try {
+      final data = await BookingService().getManagerBookings();
+      setState(() {
+        bookings = data;
+      });
+    } catch (e) {
+      debugPrint("Booking fetch error: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,14 +53,14 @@ class _ManagerPageState extends State<ManagerPage> {
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : stations.isEmpty
-                ? const Center(child: Text("No station found"))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: stations.length,
-                    itemBuilder: (context, index) {
-                      return dashboardCard(stations[index]);
-                    },
-                  ),
+            ? const Center(child: Text("No station found"))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: stations.length,
+                itemBuilder: (context, index) {
+                  return dashboardCard(stations[index]);
+                },
+              ),
       ),
     );
   }
@@ -57,34 +71,30 @@ class _ManagerPageState extends State<ManagerPage> {
     final double utilization =
         (s['totalSlots'] - s['availableSlots']) / s['totalSlots'];
 
-    final plugs =
-        (s['plugs'] as List<dynamic>).cast<Map<String, dynamic>>();
+    final plugs = (s['plugs'] as List<dynamic>).cast<Map<String, dynamic>>();
 
     bool isOperational = s['isOperational'] ?? true;
 
-    String? imageUrl =
-        (s['images'] != null && s['images'].isNotEmpty)
-            ? s['images'][0]
-            : null;
+    String? imageUrl = (s['images'] != null && s['images'].isNotEmpty)
+        ? s['images'][0]
+        : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10)
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           /// COVER IMAGE
           if (imageUrl != null)
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(22)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(22),
+              ),
               child: Image.network(
                 imageUrl,
                 height: 160,
@@ -98,23 +108,20 @@ class _ManagerPageState extends State<ManagerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 /// TITLE
                 Text(
                   s['name'],
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 4),
 
                 Text(
                   "${s['city']} • ${s['address']}",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -124,7 +131,7 @@ class _ManagerPageState extends State<ManagerPage> {
                 /// STATUS + SLOTS
                 Row(
                   children: [
-                    statusBadge(s),
+                    statusBadge(isOperational ? "Operational" : "Unavailable"),
                     const SizedBox(width: 10),
                     Text(
                       "Slots: ${s['availableSlots']} / ${s['totalSlots']}",
@@ -147,34 +154,34 @@ class _ManagerPageState extends State<ManagerPage> {
 
                 Row(
                   children: [
-
                     /// AVAILABLE BUTTON
                     GestureDetector(
                       onTap: () async {
                         if (!isOperational) {
-                          await StationService()
-                              .toggleOperational(s['_id'], true);
+                          await StationService().toggleOperational(
+                            s['_id'],
+                            true,
+                          );
                           fetchStations();
                         }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 9),
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
                         decoration: BoxDecoration(
                           color: isOperational
                               ? const Color(0xff5fb989)
                               : const Color(0xffe0e0e0),
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           "Available",
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: isOperational
-                                ? Colors.white
-                                : Colors.black,
+                            color: isOperational ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
@@ -186,29 +193,30 @@ class _ManagerPageState extends State<ManagerPage> {
                     GestureDetector(
                       onTap: () async {
                         if (isOperational) {
-                          await StationService()
-                              .toggleOperational(s['_id'], false);
+                          await StationService().toggleOperational(
+                            s['_id'],
+                            false,
+                          );
                           fetchStations();
                         }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 9),
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
                         decoration: BoxDecoration(
                           color: !isOperational
                               ? const Color(0xffd96b6b)
                               : const Color(0xffe0e0e0),
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           "Unavailable",
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: !isOperational
-                                ? Colors.white
-                                : Colors.black,
+                            color: !isOperational ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
@@ -221,21 +229,19 @@ class _ManagerPageState extends State<ManagerPage> {
                 /// UTILIZATION
                 const Text(
                   "Utilization",
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
 
                 ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(20),
                   child: LinearProgressIndicator(
                     value: utilization,
                     minHeight: 8,
                     backgroundColor: Colors.grey[200],
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(
-                            Colors.green),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.green,
+                    ),
                   ),
                 ),
 
@@ -243,19 +249,18 @@ class _ManagerPageState extends State<ManagerPage> {
 
                 /// STATS
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     statCard(
-                        "Available",
-                        s['availableSlots']
-                            .toString(),
-                        Colors.green),
+                      "Available",
+                      s['availableSlots'].toString(),
+                      Colors.green,
+                    ),
                     statCard(
-                        "Total",
-                        s['totalSlots']
-                            .toString(),
-                        Colors.purple),
+                      "Total",
+                      s['totalSlots'].toString(),
+                      Colors.purple,
+                    ),
                   ],
                 ),
 
@@ -264,10 +269,59 @@ class _ManagerPageState extends State<ManagerPage> {
                 /// PLUGS
                 const Text(
                   "Charger Management",
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
+
+                const SizedBox(height: 24),
+
+                /// ===== BOOKINGS SECTION CARD =====
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 10),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// HEADER
+                      Row(
+                        children: const [
+                          Icon(Icons.receipt_long, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            "Recent Bookings",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      /// BOOKINGS LIST
+                      bookings.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Text(
+                                "No bookings yet",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : Column(
+                              children: bookings
+                                  .map((b) => bookingCard(b))
+                                  .toList(),
+                            ),
+                    ],
+                  ),
+                ),
 
                 Wrap(
                   spacing: 8,
@@ -290,69 +344,132 @@ class _ManagerPageState extends State<ManagerPage> {
 
   // ================= UI COMPONENTS =================
 
-  Widget statusBadge(Map s) {
-    bool available = s['availableSlots'] > 0;
+  Widget statusBadge(String status) {
+    Color color;
+
+    switch (status) {
+      case "confirmed":
+        color = Colors.blue;
+        break;
+      case "completed":
+        color = Colors.green;
+        break;
+      case "cancelled":
+        color = Colors.red;
+        break;
+      default:
+        color = Colors.orange;
+    }
+
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: available
-            ? Colors.green[100]
-            : Colors.red[100],
-        borderRadius: BorderRadius.circular(14),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        available ? "Available" : "Full",
+        status,
         style: TextStyle(
-          fontSize: 12,
-          color: available
-              ? Colors.green
-              : Colors.red,
+          color: color,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Widget statCard(
-      String title, String value, Color color) {
+  Widget statCard(String title, String value, Color color) {
     return Container(
-      width:
-          MediaQuery.of(context).size.width * 0.22,
+      width: MediaQuery.of(context).size.width * 0.22,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius:
-            BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
-                fontSize: 11,
-                color:
-                    Colors.grey.shade600),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ],
       ),
     );
   }
 
-  Widget infoChip(
-      String text, IconData icon) {
+  Widget bookingCard(Map b) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xfff8f9fc),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// TOP ROW
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                b['station']['name'],
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              statusBadge(b['status']),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          /// USER INFO
+          Text(
+            "User: ${b['user']['name'] ?? "Unknown"}",
+            style: const TextStyle(fontSize: 12),
+          ),
+          Text(
+            "Phone: ${b['user']['phone'] ?? "-"}",
+            style: const TextStyle(fontSize: 12),
+          ),
+
+          const SizedBox(height: 6),
+
+          /// DETAILS ROW
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "⏱ ${b['duration']} hr",
+                style: const TextStyle(fontSize: 12),
+              ),
+              Text(
+                "Rs ${b['price']}",
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget infoChip(String text, IconData icon) {
     return Chip(
       avatar: Icon(icon, size: 16),
       label: Text(text),
-      backgroundColor:
-          Colors.grey.shade100,
+      backgroundColor: Colors.grey.shade100,
     );
   }
 }

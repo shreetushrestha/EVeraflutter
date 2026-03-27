@@ -402,6 +402,5 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  /// ROUTE FUNCTION PLACEHOLDER
   void getRoute(LatLng destination) {}
 }

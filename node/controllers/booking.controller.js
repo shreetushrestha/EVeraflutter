@@ -159,3 +159,32 @@ export const autoUpdateBookings = async () => {
     );
   }
 };
+
+// GET BOOKINGS FOR MANAGER
+export const getManagerBookings = async (req, res) => {
+  try {
+    const managerId = req.user.id;
+
+    // 1. Get all stations of this manager
+    const stations = await Station.find({ manager: managerId });
+
+    const stationIds = stations.map(s => s._id);
+
+    // 2. Get bookings for those stations
+    const bookings = await Booking.find({
+      station: { $in: stationIds }
+    })
+      .populate("station")
+      .populate("user")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: bookings
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
