@@ -25,3 +25,47 @@ export const getUser = async(req, res, next) =>{
         next(error);
     }
 }
+
+/**
+ * UPDATE USER PROFILE
+ */
+export const updateUser = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const { name, email, phone } = req.body;
+
+    if (!name && !email && !phone) {
+      return res.status(400).json({ message: "At least one field must be provided" });
+    }
+
+    // Validate phone if provided
+    if (phone && !/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ message: "Phone number must be exactly 10 digits" });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Update only provided fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

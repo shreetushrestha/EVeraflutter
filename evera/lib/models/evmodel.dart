@@ -19,6 +19,7 @@ class EvModel {
   final List<String> amenities;
   final bool isOperational;
   final int availableSlots;
+  final int totalSlots;
 
   EvModel({
     required this.id,
@@ -36,6 +37,7 @@ class EvModel {
     required this.amenities,
     required this.isOperational,
     required this.availableSlots,
+    required this.totalSlots,
   });
 
   factory EvModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class EvModel {
 
       amenities: List<String>.from(json['amenities'] ?? []),
       availableSlots: json['availableSlots'] ?? 0,
+      totalSlots: json['totalSlots'] ?? 0,
       price: json['price'] ?? "",
       isOperational: json['isOperational'] is bool
           ? json['isOperational']

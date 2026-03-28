@@ -64,6 +64,19 @@ class StationService {
     );
   }
 
+  /// ================= GET STATION BY ID =================
+  Future<Map<String, dynamic>> getStationById(String id) async {
+    final response = await dio.get('api/v1/stations/$id');
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data);
+    }
+
+    throw Exception(
+      response.data?['message'] ?? 'Failed to fetch station by id',
+    );
+  }
+
   /// ================= FAVORITES =================
   Future<void> addFavorite(String stationId) async {
     final response = await dio.post('api/v1/favorites/$stationId');

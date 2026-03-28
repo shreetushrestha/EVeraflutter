@@ -433,7 +433,7 @@ class _HomeState extends State<Home> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    statusBadge(),
+                    statusBadge(item),
                   ],
                 ),
               ],
@@ -455,6 +455,14 @@ class _HomeState extends State<Home> {
               style: const TextStyle(fontSize: 16, color: Colors.orange),
             ),
 
+            Text(
+              "${item.availableSlots}/${item.totalSlots} slots available",
+              style: TextStyle(
+                color: item.availableSlots > 0 ? Colors.green : Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -468,16 +476,22 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget statusBadge() {
+  Widget statusBadge(EvModel item) {
+    final isAvailable = item.availableSlots > 0 && item.isOperational;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.green[100],
+        color: isAvailable ? Colors.green[100] : Colors.grey[300],
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Text(
-        "Available",
-        style: TextStyle(color: Colors.green, fontSize: 12),
+      child: Text(
+        isAvailable ? "Available" : "Unavailable",
+        style: TextStyle(
+          color: isAvailable ? Colors.green : Colors.grey[700],
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -553,6 +567,7 @@ class _HomeState extends State<Home> {
   Widget stationDetailContent(EvModel item) {
     final imageUrl = item.images.isNotEmpty ? item.images.first : null;
     final priceStr = item.price; // "Rs. 15/kWh"
+    final isAvailable = item.availableSlots > 0 && item.isOperational;
 
     return SingleChildScrollView(
       child: Column(
@@ -694,14 +709,16 @@ class _HomeState extends State<Home> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: item.isOperational
+              onPressed: isAvailable
                   ? () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => BookingPage(station: item),
                         ),
-                      );
+                      ).then((_) {
+                        fetchStations(); // 🔥 refresh after booking
+                      });
                     }
                   : null,
               child: const Text("Book Now"),

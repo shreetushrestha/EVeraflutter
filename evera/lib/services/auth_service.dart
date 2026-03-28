@@ -3,17 +3,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'session.dart';
 
-
 class AuthService {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:3000/';
     if (Platform.isAndroid) return 'http://10.0.2.2:3000/';
     return 'http://localhost:3000/';
   }
+
   late Dio dio;
 
   AuthService() {
-
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
@@ -23,31 +22,28 @@ class AuthService {
       ),
     );
     dio.interceptors.add(
-  InterceptorsWrapper(
-    onRequest: (options, handler) {
-      if (Session.token != null) {
-        options.headers["Authorization"] = "Bearer ${Session.token}";
-      }
-      return handler.next(options);
-    },
-    onError: (e, handler) async {
-      if (e.response?.statusCode == 401) {
-        print("🔐 Token expired. Logging out...");
-        await Session.clear();
-      }
-      return handler.next(e);
-    },
-  ),
-);
-
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (Session.token != null) {
+            options.headers["Authorization"] = "Bearer ${Session.token}";
+          }
+          return handler.next(options);
+        },
+        onError: (e, handler) async {
+          if (e.response?.statusCode == 401) {
+            print("🔐 Token expired. Logging out...");
+            await Session.clear();
+          }
+          return handler.next(e);
+        },
+      ),
+    );
 
     print("📡 DIO BASE URL => $baseUrl");
   }
 
   Future<Response?> login(String email, String password) async {
-    final endpoints = [
-      'api/v1/auth/log-in',
-    ];
+    final endpoints = ['api/v1/auth/log-in'];
 
     Response? lastResponse;
     Object? lastError;
@@ -55,19 +51,20 @@ class AuthService {
     for (final ep in endpoints) {
       try {
         print('Attempting login to: $ep');
-        print('Request body: email=${email.isNotEmpty}, password=${password.isNotEmpty}');
+        print(
+          'Request body: email=${email.isNotEmpty}, password=${password.isNotEmpty}',
+        );
         final response = await dio.post(
           ep,
-          data: {
-            'email': email,
-            'password': password,
-          },
+          data: {'email': email, 'password': password},
           options: Options(contentType: Headers.jsonContentType),
         );
 
-        print('LOGIN ATTEMPT ${ep} -> status: ${response.statusCode} -> url: ${response.requestOptions.uri}');
+        print(
+          'LOGIN ATTEMPT ${ep} -> status: ${response.statusCode} -> url: ${response.requestOptions.uri}',
+        );
         print("LOGIN RESPONSE: ${response.statusCode} -> ${response.data}");
-        
+
         // Save token and user data to Session if login successful
         if (response.statusCode == 200 && response.data != null) {
           final data = response.data as Map<String, dynamic>;
@@ -82,17 +79,22 @@ class AuthService {
             print('✅ Token saved to Session');
           }
         }
-        
+
         return response;
-    } catch (e) {
-      print("LOGIN ERROR: $e");
-      return null;
-    }
+      } catch (e) {
+        print("LOGIN ERROR: $e");
+        return null;
+      }
     }
   }
 
   Future<Response?> signup(
-      String name, String email, String phone, String password, String role) async {
+    String name,
+    String email,
+    String phone,
+    String password,
+    String role,
+  ) async {
     try {
       final response = await dio.post(
         "api/v1/auth/signup",
@@ -114,20 +116,31 @@ class AuthService {
   }
 
   Future<Response?> getUserById(String userId) async {
-  try {
-    return await dio.get(
-      "/api/v1/users/$userId",
-      options: Options(
-        headers: {
-          "Authorization": "Bearer ${Session.token}",
-        },
-      ),
-    );
-  } catch (e) {
-    print("Get user error: $e");
-    return null;
+    try {
+      return await dio.get(
+        "/api/v1/users/$userId",
+        options: Options(headers: {"Authorization": "Bearer ${Session.token}"}),
+      );
+    } catch (e) {
+      print("Get user error: $e");
+      return null;
+    }
+  }
+
+  /// ================= UPDATE USER =================
+  Future<Response?> updateUser(String userId, Map<String, dynamic> data) async {
+    try {
+      final response = await dio.put(
+        "/api/v1/users/$userId",
+        data: data,
+        options: Options(headers: {"Authorization": "Bearer ${Session.token}"}),
+      );
+
+      print("UPDATE USER RESPONSE: ${response.statusCode} -> ${response.data}");
+      return response;
+    } catch (e) {
+      print("UPDATE USER ERROR: $e");
+      return null;
+    }
   }
 }
-
-}
-
