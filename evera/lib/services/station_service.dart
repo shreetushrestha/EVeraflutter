@@ -179,4 +179,54 @@ class StationService {
 
     throw Exception('Failed to search stations');
   }
+
+  Future<Map<String, dynamic>> createStation(
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await dio.post('api/v1/stations', data: payload);
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final data = response.data;
+      if (data is Map && data['station'] != null) {
+        return Map<String, dynamic>.from(data['station'] as Map);
+      }
+      return Map<String, dynamic>.from(data as Map);
+    }
+
+    throw Exception(_extractMessage(response.data, 'Failed to create station'));
+  }
+
+  Future<Map<String, dynamic>> updateStation(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await dio.put('api/v1/stations/$id', data: payload);
+
+    if (response.statusCode == 200) {
+      final data = response.data;
+      if (data is Map && data['station'] != null) {
+        return Map<String, dynamic>.from(data['station'] as Map);
+      }
+      return Map<String, dynamic>.from(data as Map);
+    }
+
+    throw Exception(_extractMessage(response.data, 'Failed to update station'));
+  }
+
+  Future<void> deleteStation(String id) async {
+    final response = await dio.delete('api/v1/stations/$id');
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+
+    throw Exception(_extractMessage(response.data, 'Failed to delete station'));
+  }
+
+  String _extractMessage(dynamic data, String fallback) {
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
+    return fallback;
+  }
 }
