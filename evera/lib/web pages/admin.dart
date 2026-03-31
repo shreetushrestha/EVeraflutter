@@ -1,6 +1,6 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'manage_stations.dart';
@@ -21,8 +21,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    const themePurple = Color(0xFF7B4DFF);
-
     final pages = <Widget>[
       AdminOverviewTab(
         profileKey: _profileKey,
@@ -32,33 +30,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xfff6f7fb),
       body: SafeArea(
         child: Row(
           children: [
-            // ✅ LEFT SIDE NAV BAR
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() => _selectedIndex = index);
-              },
-              indicatorColor: themePurple.withOpacity(0.16),
-              labelType: NavigationRailLabelType.all,
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view),
-                  label: Text('Manage Stations'),
-                ),
-              ],
-            ),
-
-            // ✅ MAIN CONTENT
+            _sidebar(),
             Expanded(child: pages[_selectedIndex]),
           ],
         ),
@@ -66,9 +42,101 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  Future<void> _showProfileMenu() async {
-    final themePurple = const Color(0xFF7B4DFF);
+  /// ================= SIDEBAR =================
+  Widget _sidebar() {
+    return Container(
+      width: 230,
+      color: Colors.white,
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
 
+          /// LOGO
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: const BoxDecoration(
+              color: Color(0xFF67C090),
+              shape: BoxShape.circle,
+            ),
+            child: SvgPicture.asset(
+              'assets/icons/logo.svg',
+              width: 40,
+              height: 40,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
+          const Text(
+            "EVera Admin",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 40),
+
+          _navItem(Icons.dashboard, "Dashboard", 0),
+          _navItem(Icons.ev_station, "Manage Stations", 1),
+
+          const Spacer(),
+
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              "Admin Panel",
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String title, int index) {
+    final isSelected = _selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF67C090).withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected
+                  ? const Color(0xFF67C090)
+                  : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF67C090)
+                    : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ================= PROFILE MENU =================
+  Future<void> _showProfileMenu() async {
     final RenderBox box =
         _profileKey.currentContext!.findRenderObject() as RenderBox;
     final overlay =
@@ -86,73 +154,38 @@ class _AdminHomePageState extends State<AdminHomePage> {
     final result = await showMenu<String>(
       context: context,
       position: position,
-      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       items: [
-        PopupMenuItem<String>(
+        const PopupMenuItem(
           enabled: false,
-          child: SizedBox(
-            width: 260,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Color(0xFFEDE7FF),
-                      child: Icon(Icons.person, color: Color(0xFFC06797)),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Admin Profile',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  Session.token == null || Session.token!.isEmpty
-                      ? 'No active session'
-                      : 'Signed in as administrator',
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'You can manage stations, edit details, and log out from here.',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-              ],
-            ),
+          child: Text(
+            "Admin Profile",
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'logout',
+        const PopupMenuItem(
+          value: "logout",
           child: Row(
-            children: const [
+            children: [
               Icon(Icons.logout, color: Colors.red),
               SizedBox(width: 10),
-              Text('Logout', style: TextStyle(color: Colors.red)),
+              Text("Logout", style: TextStyle(color: Colors.red)),
             ],
           ),
         ),
       ],
     );
 
-    if (result == 'logout') {
+    if (result == "logout") {
       Session.token = null;
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
     }
   }
 }
 
+/// ================= OVERVIEW =================
 class AdminOverviewTab extends StatefulWidget {
   final GlobalKey profileKey;
   final VoidCallback onOpenProfileMenu;
@@ -172,8 +205,6 @@ class _AdminOverviewTabState extends State<AdminOverviewTab> {
 
   List<Map<String, dynamic>> stations = [];
   bool isLoading = true;
-  String? errorMessage;
-  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -182,104 +213,30 @@ class _AdminOverviewTabState extends State<AdminOverviewTab> {
   }
 
   Future<void> _fetchStations() async {
-    try {
-      final data = await _stationService.getAllStations();
-      if (!mounted) return;
-      setState(() {
-        stations = data;
-        isLoading = false;
-        errorMessage = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-        errorMessage = e.toString();
-      });
-    }
+    final data = await _stationService.getAllStations();
+    if (!mounted) return;
+    setState(() {
+      stations = data;
+      isLoading = false;
+    });
   }
 
-  int get _totalChargers {
+  /// ✅ FIXED
+  int get totalChargers {
     int total = 0;
-    for (final station in stations) {
-      total += _toList(station['plugs']).length;
+    for (final s in stations) {
+      if (s['plugs'] is List) {
+        total += (s['plugs'] as List).length;
+      }
     }
     return total;
   }
 
-  int get _operationalStations {
-    return stations.where((s) => s['isOperational'] == true).length;
-  }
-
-  void _showStationInfo(Map<String, dynamic> station) {
-    final manager = _managerLabel(station['manager']);
-    final plugs = _toList(station['plugs']);
-    final types = _toList(station['type']);
-    final amenities = _toList(station['amenities']);
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(station['name']?.toString() ?? 'Station'),
-          content: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _infoLine('Manager', manager),
-                  _infoLine('City', station['city']?.toString() ?? '-'),
-                  _infoLine('Province', station['province']?.toString() ?? '-'),
-                  _infoLine('Address', station['address']?.toString() ?? '-'),
-                  _infoLine(
-                    'Telephone',
-                    station['telephone']?.toString() ?? '-',
-                  ),
-                  _infoLine(
-                    'Location',
-                    '${station['latitude'] ?? '-'}, ${station['longitude'] ?? '-'}',
-                  ),
-                  _infoLine(
-                    'Slots',
-                    '${station['availableSlots'] ?? 0}/${station['totalSlots'] ?? 0}',
-                  ),
-                  _infoLine(
-                    'Operational',
-                    station['isOperational'] == true ? 'Yes' : 'No',
-                  ),
-                  _infoLine('Price', station['price']?.toString() ?? '-'),
-                  _infoLine('Types', types.isEmpty ? '-' : types.join(', ')),
-                  _infoLine(
-                    'Amenities',
-                    amenities.isEmpty ? '-' : amenities.join(', '),
-                  ),
-                  _infoLine(
-                    'Plugs',
-                    plugs.isEmpty ? '-' : '${plugs.length} plug(s)',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  int get operationalStations =>
+      stations.where((s) => s['isOperational'] == true).length;
 
   @override
   Widget build(BuildContext context) {
-    const themePurple = Color(0xFF7B4DFF);
-
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -288,84 +245,41 @@ class _AdminOverviewTabState extends State<AdminOverviewTab> {
             children: [
               const Expanded(
                 child: Text(
-                  'Admin Dashboard',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                  "Admin Dashboard",
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
               ),
               GestureDetector(
                 key: widget.profileKey,
                 onTap: widget.onOpenProfileMenu,
                 child: const CircleAvatar(
-                  radius: 23,
-                  backgroundColor: Color(0xFFEDE7FF),
-                  child: Icon(Icons.person, color: themePurple),
+                  backgroundColor: Color(0xffe8f5e9),
+                  child: Icon(Icons.person, color: Color(0xFF67C090)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 22),
+
+          const SizedBox(height: 20),
+
           if (isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (errorMessage != null)
-            Expanded(
-              child: Center(
-                child: Text(
-                  errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            )
           else
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: _fetchStations,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          _StatCard(
-                            title: 'Charging Stations',
-                            value: stations.length.toString(),
-                          ),
-                          const SizedBox(width: 16),
-                          _StatCard(
-                            title: 'Total Chargers',
-                            value: _totalChargers.toString(),
-                          ),
-                          const SizedBox(width: 16),
-                          _StatCard(
-                            title: 'Operational',
-                            value: _operationalStations.toString(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isNarrow = constraints.maxWidth < 980;
-                          final mapHeight = isNarrow ? 320.0 : 520.0;
-
-                          return SizedBox(
-                            height: mapHeight,
-                            child: Row(
-                              children: [
-                                Expanded(flex: 3, child: _mapView()),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  flex: 2,
-                                  child: _recentStationsPanel(),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                      _stat("Stations", stations.length.toString()),
+                      _stat("Chargers", totalChargers.toString()),
+                      _stat("Operational", operationalStations.toString()),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 20),
+
+                  Expanded(child: _map()),
+                ],
               ),
             ),
         ],
@@ -373,185 +287,14 @@ class _AdminOverviewTabState extends State<AdminOverviewTab> {
     );
   }
 
-  Widget _mapView() {
-    final defaultCenter = stations.isNotEmpty
-        ? LatLng(
-            _toDouble(stations.first['latitude'], 28.20833),
-            _toDouble(stations.first['longitude'], 83.95804),
-          )
-        : const LatLng(28.20833, 83.95804);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(initialCenter: defaultCenter, initialZoom: 12.5),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.evera.app',
-          ),
-          MarkerLayer(
-            markers: stations.map((station) {
-              return Marker(
-                width: 44,
-                height: 44,
-                point: LatLng(
-                  _toDouble(station['latitude'], 0),
-                  _toDouble(station['longitude'], 0),
-                ),
-                child: GestureDetector(
-                  onTap: () => _showStationInfo(station),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 6),
-                      ],
-                    ),
-                    child: const Icon(Icons.ev_station, color: Colors.white),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _recentStationsPanel() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Station Overview',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              itemCount: math.min(stations.length, 6),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, index) {
-                final station = stations[index];
-                return InkWell(
-                  onTap: () => _showStationInfo(station),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          station['name']?.toString() ?? 'Station',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '${station['city'] ?? '-'}, ${station['province'] ?? '-'}',
-                          style: TextStyle(color: Colors.grey.shade700),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Manager: ${_managerLabel(station['manager'])}',
-                          style: TextStyle(color: Colors.grey.shade700),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _managerLabel(dynamic manager) {
-    if (manager is Map) {
-      return manager['name']?.toString() ??
-          manager['fullName']?.toString() ??
-          manager['email']?.toString() ??
-          manager['_id']?.toString() ??
-          'Assigned manager';
-    }
-    return manager?.toString() ?? 'Assigned manager';
-  }
-
-  List<String> _toList(dynamic value) {
-    if (value == null) return [];
-    if (value is List) {
-      return value.map((e) => e.toString()).toList();
-    }
-    if (value is String) {
-      return value
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-    return [value.toString()];
-  }
-
-  double _toDouble(dynamic value, double fallback) {
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? fallback;
-  }
-
-  Widget _infoLine(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text('$label: $value'),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _StatCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _stat(String title, String value) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(18),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,11 +303,38 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _map() {
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: const LatLng(28.2, 83.9),
+        initialZoom: 12,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        ),
+        MarkerLayer(
+          markers: stations.map((s) {
+            return Marker(
+              point: LatLng(
+                (s['latitude'] ?? 0).toDouble(),
+                (s['longitude'] ?? 0).toDouble(),
+              ),
+              width: 40,
+              height: 40,
+              child: const Icon(Icons.ev_station, color: Color(0xFF67C090)),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/bottom_nav.dart'; // Use your imported bottom_nav
 import '../services/bookingservice.dart';
 import 'package:intl/intl.dart';
 import '../models/evmodel.dart';
@@ -134,7 +134,11 @@ class _BookingsPageState extends State<BookingsPage> {
       appBar: AppBar(
         title: Text("My Bookings (${upcoming.length + past.length})"),
       ),
-      bottomNavigationBar: bottomNav(context, 2),
+      bottomNavigationBar: bottomNav(
+        context,
+        2, // Bookings page index
+        userLocation: userLocation,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -159,7 +163,6 @@ class _BookingsPageState extends State<BookingsPage> {
           ),
 
           const SizedBox(height: 20),
-
           const Text(
             "PAST BOOKINGS",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -244,7 +247,7 @@ class _BookingsPageState extends State<BookingsPage> {
     );
   }
 
-  /// ================= STATION DETAIL CONTENT (FROM HOME) =================
+  /// ================= STATION DETAIL CONTENT =================
   Widget stationDetailContent(EvModel item) {
     final imageUrl = item.images.isNotEmpty ? item.images.first : null;
     final isAvailable = item.availableSlots > 0 && item.isOperational;
@@ -408,35 +411,5 @@ class _BookingsPageState extends State<BookingsPage> {
         showRoute = true;
       });
     }
-  }
-
-  /// ================= NAV BAR =================
-  Widget bottomNav(BuildContext context, int currentIndex) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      type: BottomNavigationBarType.fixed,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/home');
-            break;
-          case 1:
-            Navigator.pushReplacementNamed(context, '/search');
-            break;
-          case 2:
-            Navigator.pushReplacementNamed(context, '/bookings');
-            break;
-          case 3:
-            Navigator.pushReplacementNamed(context, '/profile');
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-        BottomNavigationBarItem(icon: Icon(Icons.list), label: "Bookings"),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-      ],
-    );
   }
 }
