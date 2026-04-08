@@ -9,7 +9,7 @@ import 'web pages/CSM.dart';
 import 'web pages/admin.dart';
 import 'web pages/loginweb.dart';
 import 'web pages/signupweb.dart';
-import 'pages/auth_page.dart'; 
+import 'pages/auth_page.dart';
 
 import 'services/session.dart';
 
@@ -22,9 +22,7 @@ void main() async {
   // 🔑 Restore login state
   Session.loadFromHive();
 
-  runApp(
-    const MyApp(),
-    );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -38,11 +36,11 @@ class MyApp extends StatelessWidget {
       home: kIsWeb
           ? const WebManagerLogin()
           : Session.isLoggedIn
-              ? const SplashPage()
-              : const LandingPage(),
+          ? const SplashPage()
+          : const LandingPage(),
 
       routes: {
-        '/admin': (_) => const AdminHomePage(),
+        '/admin': (_) => const AdminDashboardPage(),
         '/login': (_) => const AuthPage(),
         '/home': (_) => const Home(),
         '/mystation': (_) => const ManagerPage(),
@@ -50,5 +48,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-

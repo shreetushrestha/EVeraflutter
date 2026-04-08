@@ -11,41 +11,78 @@ import nodemailer from "nodemailer";
 /**
  * SIGN UP
  */
-export const signUp = async (req, res, next) => {
+export const signUp = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { name, email, phone, password, role } = req.body;
 
+    // 🔴 1. Empty fields
     if (!name || !email || !phone || !password) {
-      throw new Error("All fields are required");
+      return res.status(400).json({
+        message: "All fields are required"
+      });
     }
 
-    if (!/^\d{10}$/.test(phone)) {
-      throw new Error("Phone number must be exactly 10 digits");
+    // Check: only digits
+if (!/^\d+$/.test(phone)) {
+  return res.status(400).json({
+    message: "Phone number should contain numbers only."
+  });
+}
+
+// Check: exactly 10 digits
+if (phone.length !== 10) {
+  return res.status(400).json({
+    message: "Phone number must be exactly 10 digits."
+  });
+}
+
+
+    // 🔴 3. Email format check (optional but good)
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: "Invalid email format"
+      });
     }
 
-    // ✅ Allow only specific roles from body
+    // 🔴 4. Password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters"
+      });
+    }
+
+    // 🔴 5. Role validation
     const allowedRoles = ["user", "manager"];
     const assignedRole = allowedRoles.includes(role) ? role : "user";
 
+    // 🔴 6. Check existing user
     const existingUser = await User.findOne({ email });
-    if (existingUser) throw new Error("User already exists");
+    if (existingUser) {
+      return res.status(400).json({
+        message: "User already exists"
+      });
+    }
 
+    // 🔐 7. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 👤 8. Create user
     const newUser = await User.create(
       [{
         name,
         email,
         phone,
         password: hashedPassword,
-        role: assignedRole // ✅ FIX
+        role: assignedRole
       }],
       { session }
     );
 
+    // 🔑 9. Generate token
     const token = jwt.sign(
       { id: newUser[0]._id, role: newUser[0].role },
       JWT_SECRET,
@@ -55,7 +92,8 @@ export const signUp = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.status(201).json({
+    // ✅ SUCCESS RESPONSE
+    return res.status(201).json({
       success: true,
       message: "User created successfully",
       token,
@@ -65,7 +103,20 @@ export const signUp = async (req, res, next) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    next(error);
+
+    console.error(error); // 👈 IMPORTANT for debugging
+
+    // 🔴 HANDLE MONGOOSE ERRORS
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "Email already exists"
+      });
+    }
+
+    // 🔴 FALLBACK ERROR
+    return res.status(500).json({
+      message: error.message || "Something went wrong"
+    });
   }
 };
 

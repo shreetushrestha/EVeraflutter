@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
 import '../services/session.dart';
@@ -81,7 +82,17 @@ class _AuthPageState extends State<AuthPage> {
         showToast("Invalid email or password");
       }
     } catch (e) {
-      showToast("Login failed. Please try again.");
+      if (e is DioException) {
+        print("🔥 BACKEND RESPONSE: ${e.response?.data}");
+
+        final msg = e.response?.data is Map
+            ? e.response?.data['message']
+            : null;
+
+        showToast(msg ?? "Something went wrong");
+      } else {
+        showToast("Unexpected error occurred");
+      }
     } finally {
       setState(() => isLoading = false);
     }
@@ -96,6 +107,11 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
+    if (passwordCtrl.text.length < 6) {
+      showToast("Password must be at least 6 characters");
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
@@ -107,23 +123,68 @@ class _AuthPageState extends State<AuthPage> {
         "user",
       );
 
-      if (res != null) {
-        showToast("Account created successfully");
-        Navigator.pushReplacementNamed(context, '/home');
+      if (res != null && res.statusCode == 201) {
+        final token = res.data['token'];
+        final user = res.data['user'];
+
+        // ✅ SAVE SESSION (THIS WAS MISSING)
+        await Session.saveLogin(
+          token: token,
+          userId: user['_id'], // or 'id' depending on backend
+          email: user['email'],
+        );
+
+        showToast("Account created successfully 🎉", isError: false);
+
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      } else {
+        if (res == null) {
+          showToast("No response from server");
+          return;
+        }
+
+        final data = res.data;
+
+        String message;
+
+        if (data is Map && data.containsKey('message')) {
+          message = data['message'];
+        } else {
+          message = "Signup failed";
+        }
+
+        showToast(message);
       }
     } catch (e) {
-      showToast("Signup failed. Email may already exist.");
+      if (e is DioException) {
+        showToast(e.response?.data?['message'] ?? e.message ?? "Network error");
+      } else {
+        showToast("Unexpected error occurred");
+      }
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  void showToast(String message) {
+  void showToast(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(12),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -371,6 +432,21 @@ class _AuthPageState extends State<AuthPage> {
                 showPassword ? Icons.visibility : Icons.visibility_off,
               ),
               onPressed: () => setState(() => showPassword = !showPassword),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        label("Confirm Password"),
+        TextField(
+          controller: confirmCtrl,
+          obscureText: !showConfirm,
+          decoration: inputStyle(
+            "Confirm password",
+            suffix: IconButton(
+              icon: Icon(showConfirm ? Icons.visibility : Icons.visibility_off),
+              onPressed: () => setState(() => showConfirm = !showConfirm),
             ),
           ),
         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/station_service.dart';
+import 'sidebar.dart';
+import 'admin.dart';
 
 class ManageStationsPage extends StatefulWidget {
   const ManageStationsPage({super.key});
@@ -22,242 +24,338 @@ class _ManageStationsPageState extends State<ManageStationsPage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // 🔍 SEARCH BAR
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() => searchQuery = value);
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Search stations...",
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
+      body: Row(
+        children: [
+          /// 🔥 SIDEBAR
+          AdminSidebar(
+            selectedIndex: 1,
+            onHomeTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+              );
+            },
+          ),
 
-                // 📦 STATIONS GRID
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredStations.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                          childAspectRatio: 0.95,
-                        ),
-                    itemBuilder: (context, index) {
-                      final station = _filteredStations[index];
-
-                      final images = _toList(station['images']);
-                      final types = _toList(station['type']);
-                      final amenities = _toList(station['amenities']);
-                      final plugs = station['plugs'] ?? [];
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black12, blurRadius: 8),
+          /// 🔥 MAIN CONTENT
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// 🔥 HEADER
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            const Text(
+                              "Search Stations",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF67C090),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              onPressed: _openCreateStation,
+                              icon: const Icon(Icons.add),
+                              label: const Text("Create Station"),
+                            ),
                           ],
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 🖼 IMAGES (carousel style)
-                              SizedBox(
-                                height: 130,
-                                child: images.isNotEmpty
-                                    ? ListView.separated(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount: images.length,
-                                        separatorBuilder: (_, __) =>
-                                            const SizedBox(width: 8),
-                                        itemBuilder: (_, i) => ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          child: Image.network(
-                                            images[i],
-                                            width: 160,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Icon(Icons.broken_image),
-                                          ),
-                                        ),
-                                      )
-                                    : Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.ev_station,
-                                            size: 40,
-                                          ),
-                                        ),
-                                      ),
-                              ),
+                      ),
 
-                              const SizedBox(height: 10),
-
-                              // 🏷 NAME + EDIT
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      station['name'] ?? '',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _openEditStation(station),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 6),
-
-                              // 📍 LOCATION
-                              _line("City", station['city']),
-                              _line("Province", station['province']),
-                              _line("Address", station['address']),
-                              _line("Phone", station['telephone']),
-
-                              const SizedBox(height: 6),
-
-                              // 📍 COORDINATES
-                              _line(
-                                "Coords",
-                                "${station['latitude']}, ${station['longitude']}",
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // ⚡ TYPES
-                              const Text(
-                                "Types",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              Wrap(
-                                spacing: 6,
-                                children: types
-                                    .map(
-                                      (t) => Chip(
-                                        label: Text(t),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // 🔌 PLUGS FULL DETAIL
-                              const Text(
-                                "Plugs",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              ...plugs.map<Widget>((p) {
-                                return Text(
-                                  "- ${p['plug']} | ${p['power']} | ${p['type']}",
-                                  style: const TextStyle(fontSize: 12),
-                                );
-                              }),
-
-                              const SizedBox(height: 8),
-
-                              // 🧰 AMENITIES
-                              const Text(
-                                "Amenities",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                amenities.isEmpty
-                                    ? "None"
-                                    : amenities.join(", "),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // 💰 PRICE
-                              _line("Price", station['price']),
-
-                              // ⚙ STATUS
-                              Row(
-                                children: [
-                                  const Text("Status: "),
-                                  Icon(
-                                    station['isOperational'] == true
-                                        ? Icons.check_circle
-                                        : Icons.cancel,
-                                    color: station['isOperational'] == true
-                                        ? Colors.green
-                                        : Colors.red,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    station['isOperational'] == true
-                                        ? "Operational"
-                                        : "Offline",
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 6),
-
-                              // 🚗 SLOTS
-                              _line(
-                                "Slots",
-                                "${station['availableSlots']} / ${station['totalSlots']}",
-                              ),
-
-                              const SizedBox(height: 6),
-
-                              // 👤 MANAGER
-                              _line(
-                                "Manager",
-                                _managerLabel(station['manager']),
-                              ),
-
-                              const SizedBox(height: 6),
-
-                              // 🆔 ID (ADMIN IMPORTANT)
-                              _line("ID", station['_id']),
-                            ],
+                      /// 🔍 SEARCH
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: TextField(
+                          onChanged: (value) {
+                            setState(() => searchQuery = value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Search stations...",
+                            prefixIcon: const Icon(Icons.search),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                      ),
 
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF7B4DFF),
-        onPressed: _openCreateStation,
-        child: const Icon(Icons.add),
+                      const SizedBox(height: 10),
+
+                      /// 📦 GRID
+                      Expanded(
+                        child: GridView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: _filteredStations.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 18,
+                                mainAxisSpacing: 18,
+                                childAspectRatio: 1.55,
+                              ),
+                          itemBuilder: (context, index) {
+                            final station = _filteredStations[index];
+
+                            final images = _toList(station['images']);
+                            final types = _toList(station['type']);
+                            final amenities = _toList(station['amenities']);
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  /// 🖼 IMAGE + BADGES
+                                  Stack(
+                                    children: [
+                                      SizedBox(
+                                        height: 170,
+                                        width: double.infinity,
+                                        child: images.isNotEmpty
+                                            ? Image.network(
+                                                images[0],
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                color: Colors.grey[200],
+                                              ),
+                                      ),
+
+                                      /// ✅ Availability badge
+                                      Positioned(
+                                        top: 10,
+                                        left: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                (station['availableSlots'] ??
+                                                        0) >
+                                                    0
+                                                ? Colors.green
+                                                : Colors.red,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            "${station['availableSlots'] ?? 0}/${station['totalSlots'] ?? 0} Available",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      /// ✏ EDIT
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: GestureDetector(
+                                          onTap: () =>
+                                              _openEditStation(station),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.pink,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.edit,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  /// 📄 DETAILS
+                                  Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        /// TITLE
+                                        Text(
+                                          station['name'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 6),
+
+                                        /// LOCATION
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.location_on,
+                                              size: 14,
+                                              color: Colors.green,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              "${station['city']}",
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        Text(
+                                          station['address'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 8),
+
+                                        /// ⚡ TYPES (chips)
+                                        Wrap(
+                                          spacing: 6,
+                                          children: types.map((t) {
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.pink.withOpacity(
+                                                  0.1,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                t,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.pink,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+
+                                        const SizedBox(height: 8),
+
+                                        /// 💰 PRICE
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.attach_money,
+                                              size: 16,
+                                              color: Colors.green,
+                                            ),
+                                            Text(
+                                              " ${station['price'] ?? 'Rs. 15/kWh'}",
+                                            ),
+                                          ],
+                                        ),
+
+                                        /// 📞 PHONE
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.phone,
+                                              size: 14,
+                                              color: Colors.green,
+                                            ),
+                                            Text(
+                                              " ${station['telephone'] ?? ''}",
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 6),
+
+                                        /// 🧰 AMENITIES
+                                        Text(
+                                          amenities.join(" • "),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 6),
+
+                                        /// 📍 LAT LONG
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              "Lat: ${station['latitude']}",
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            Text(
+                                              "Long: ${station['longitude']}",
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }

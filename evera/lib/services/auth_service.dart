@@ -109,8 +109,13 @@ class AuthService {
 
       print("SIGNUP RESPONSE: ${response.statusCode} -> ${response.data}");
       return response;
+    } on DioException catch (e) {
+      print("🔥 SIGNUP ERROR RESPONSE: ${e.response?.data}");
+
+      // ✅ RETURN THE ERROR RESPONSE INSTEAD OF NULL
+      return e.response;
     } catch (e) {
-      print("SIGNUP ERROR: $e");
+      print("SIGNUP UNKNOWN ERROR: $e");
       return null;
     }
   }
