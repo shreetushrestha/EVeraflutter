@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import '../models/evmodel.dart';
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:evera/pages/bookings.dart';
 import 'package:evera/pages/search.dart';
@@ -30,6 +31,8 @@ class _HomeState extends State<Home> {
   LatLng? userLocation;
   bool isLoading = true;
 
+  bool followUser = true;
+
   List<LatLng> routePoints = [];
   bool showRoute = false;
   bool showStationList = true;
@@ -37,12 +40,25 @@ class _HomeState extends State<Home> {
   double nearbyRadiusKm = 10;
   Set<String> favoriteIds = {};
 
+  EvModel? selectedStation;
+
+  StreamSubscription<Position>? _positionStream;
+
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+
   @override
   void initState() {
     super.initState();
     fetchStations();
-    getUserLocation();
+    startLocationTracking(); // 👈 instead of getUserLocation()
     loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    super.dispose();
   }
 
   Future<void> loadFavorites() async {
@@ -83,7 +99,7 @@ class _HomeState extends State<Home> {
   }
 
   /// ================= USER LOCATION =================
-  Future<void> getUserLocation() async {
+  Future<void> startLocationTracking() async {
     if (!await Geolocator.isLocationServiceEnabled()) return;
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -94,13 +110,23 @@ class _HomeState extends State<Home> {
 
     if (permission == LocationPermission.deniedForever) return;
 
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 5,
+          ),
+        ).listen((Position position) {
+          final newLocation = LatLng(position.latitude, position.longitude);
 
-    userLocation = LatLng(position.latitude, position.longitude);
-    setState(() {});
-    _mapController.move(userLocation!, 14);
+          setState(() {
+            userLocation = newLocation;
+          });
+
+          if (followUser) {
+            _mapController.move(newLocation, _mapController.camera.zoom);
+          }
+        });
   }
 
   Future<void> getRoute(LatLng destination) async {
@@ -122,6 +148,7 @@ class _HomeState extends State<Home> {
       setState(() {
         routePoints = coordinates.map((c) => LatLng(c[1], c[0])).toList();
         showRoute = true;
+        showStationList = false;
       });
 
       _mapController.fitCamera(
@@ -145,18 +172,35 @@ class _HomeState extends State<Home> {
     }
 
     if (selectedFilter == "Nearby" && userLocation != null) {
-      return items.where((station) {
+      final nearbyStations = items.where((station) {
         final distanceInMeters = Geolocator.distanceBetween(
           userLocation!.latitude,
           userLocation!.longitude,
           station.latitude,
           station.longitude,
         );
-
         final distanceInKm = distanceInMeters / 1000;
-
         return distanceInKm <= nearbyRadiusKm;
       }).toList();
+
+      // Sort ascending by distance (nearest first)
+      nearbyStations.sort((a, b) {
+        final distanceA = Geolocator.distanceBetween(
+          userLocation!.latitude,
+          userLocation!.longitude,
+          a.latitude,
+          a.longitude,
+        );
+        final distanceB = Geolocator.distanceBetween(
+          userLocation!.latitude,
+          userLocation!.longitude,
+          b.latitude,
+          b.longitude,
+        );
+        return distanceA.compareTo(distanceB);
+      });
+
+      return nearbyStations;
     }
 
     if (selectedFilter == "Favorites") {
@@ -175,6 +219,7 @@ class _HomeState extends State<Home> {
       backgroundColor: Colors.transparent,
       builder: (_) {
         return DraggableScrollableSheet(
+          controller: _sheetController,
           expand: false,
           initialChildSize: 0.75,
           minChildSize: 0.4,
@@ -203,61 +248,104 @@ class _HomeState extends State<Home> {
       body: Stack(
         children: [
           /// ================= MAP =================
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: const LatLng(28.20833, 83.95804),
-              initialZoom: 13,
-            ),
-            children: [
-              openStreetMapTileLayer,
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedStation = null;
+              });
 
-              /// USER MARKER
-              if (userLocation != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      width: 24,
-                      height: 24,
-                      point: userLocation!,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
+              _sheetController.animateTo(
+                0.25,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: const LatLng(28.20833, 83.95804),
+                initialZoom: 13,
+              ),
+              children: [
+                openStreetMapTileLayer,
+
+                /// USER MARKER
+                if (userLocation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 24,
+                        height: 24,
+                        point: userLocation!,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+
+                /// STATION MARKERS
+                MarkerLayer(
+                  markers: items.map((item) {
+                    return Marker(
+                      width: 40,
+                      height: 40,
+                      point: LatLng(item.latitude, item.longitude),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (selectedStation?.id == item.id) {
+                            openStationOverlay(item);
+                          } else {
+                            setState(() {
+                              selectedStation = item;
+                            });
+                          }
+                        },
+                        child: chargerMarker(item),
+                      ),
+                    );
+                  }).toList(),
                 ),
 
-              /// STATION MARKERS
-              MarkerLayer(
-                markers: items.map((item) {
-                  return Marker(
-                    width: 46,
-                    height: 46,
-                    point: LatLng(item.latitude, item.longitude),
-                    child: chargerMarker(),
-                  );
-                }).toList(),
-              ),
-              if (showRoute)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: routePoints,
-                      strokeWidth: 5,
-                      color: Colors.blue,
-                    ),
-                  ],
-                ),
-            ],
+                /// POPUP
+                if (selectedStation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 200,
+                        height: 120,
+                        point: LatLng(
+                          selectedStation!.latitude,
+                          selectedStation!.longitude,
+                        ),
+                        alignment: Alignment.topCenter,
+                        child: stationPopup(selectedStation!),
+                      ),
+                    ],
+                  ),
+
+                /// ROUTE
+                if (showRoute)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: routePoints,
+                        strokeWidth: 5,
+                        color: Colors.blue,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
 
-          /// ZOOM OUT BUTTON
+          /// ================= TOP BUTTONS =================
           Positioned(
-            top: 410,
+            top: 350,
             right: 16,
             child: FloatingActionButton(
               mini: true,
@@ -272,8 +360,9 @@ class _HomeState extends State<Home> {
               },
             ),
           ),
+
           Positioned(
-            top: 470,
+            top: 400,
             right: 16,
             child: FloatingActionButton(
               mini: true,
@@ -288,14 +377,86 @@ class _HomeState extends State<Home> {
           ),
 
           /// ================= STATION LIST =================
-          if (showStationList)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 300,
-              child: stationsContainer(),
+          DraggableScrollableSheet(
+            controller: _sheetController,
+            initialChildSize: 0.4,
+            minChildSize: 0.25,
+            maxChildSize: 0.95,
+            snap: true,
+            snapSizes: const [0.4, 0.95],
+            builder: (context, scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+
+                    /// DRAG HANDLE
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    /// FILTERS
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          filterChip("All"),
+                          const SizedBox(width: 8),
+                          filterChip("Nearby"),
+                          const SizedBox(width: 8),
+                          filterChip("Favorites"),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    /// LIST
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollController,
+                        itemCount: filteredStations.length,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, index) =>
+                            stationCard(filteredStations[index]),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          /// ================= MAP BUTTON (ALWAYS ON TOP) =================
+          Positioned(
+            top: 450,
+            right: 16,
+            child: FloatingActionButton(
+              backgroundColor: Colors.white,
+              mini: true,
+              child: const Icon(Icons.map, color: Colors.black),
+              onPressed: () {
+                _sheetController.animateTo(
+                  0.25,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             ),
+          ),
         ],
       ),
 
@@ -305,10 +466,12 @@ class _HomeState extends State<Home> {
   }
 
   /// ================= MARKER ICON =================
-  Widget chargerMarker() {
+  Widget chargerMarker(EvModel item) {
+    final isSelected = selectedStation?.id == item.id;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.green,
+        color: isSelected ? Colors.blue : Colors.green,
         shape: BoxShape.circle,
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
       ),
@@ -356,6 +519,78 @@ class _HomeState extends State<Home> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget stationPopup(EvModel item) {
+    final isAvailable = item.availableSlots > 0 && item.isOperational;
+
+    double? distanceKm;
+    if (userLocation != null) {
+      final meters = Geolocator.distanceBetween(
+        userLocation!.latitude,
+        userLocation!.longitude,
+        item.latitude,
+        item.longitude,
+      );
+      distanceKm = meters / 1000;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min, // 👈 IMPORTANT
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          constraints: const BoxConstraints(
+            maxWidth: 180,
+          ), // 👈 prevents overflow
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                isAvailable ? "Available" : "Unavailable",
+                style: TextStyle(
+                  color: isAvailable ? Colors.green : Colors.red,
+                  fontSize: 11,
+                ),
+              ),
+
+              if (distanceKm != null)
+                Text(
+                  "${distanceKm.toStringAsFixed(1)} km",
+                  style: const TextStyle(fontSize: 11),
+                ),
+
+              Text(
+                item.price,
+                style: const TextStyle(fontSize: 11, color: Colors.orange),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 2),
+
+        /// SMALL POINTER
+        const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+      ],
     );
   }
 
@@ -716,8 +951,73 @@ class _HomeState extends State<Home> {
                         MaterialPageRoute(
                           builder: (_) => BookingPage(station: item),
                         ),
-                      ).then((_) {
-                        fetchStations(); // 🔥 refresh after booking
+                      ).then((result) {
+                        if (result == true) {
+                          fetchStations();
+
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            barrierColor: Colors.black.withOpacity(0.3),
+                            builder: (_) {
+                              return Dialog(
+                                elevation: 10, // 👈 adds depth
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Color(0xFFE8F5E9),
+                                        size: 50,
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      const Text(
+                                        "Booking Successful 🎉",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 10),
+
+                                      const Text(
+                                        "Your charging slot has been booked successfully.",
+                                        textAlign: TextAlign.center,
+                                      ),
+
+                                      const SizedBox(height: 20),
+
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Color(0xFFE8F5E9),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text("OK"),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
                       });
                     }
                   : null,

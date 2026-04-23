@@ -102,12 +102,6 @@ class _BookingPageState extends State<BookingPage> {
         duration: selectedDuration,
         price: totalPrice.toInt(),
       );
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Booking Confirmed")));
-
-      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -270,12 +264,41 @@ class _BookingPageState extends State<BookingPage> {
                     onSuccess: () async {
                       // Only confirm booking if payment succeeds
                       await confirmBooking();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Payment Successful & Booking Confirmed",
-                          ),
-                        ),
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        barrierColor: Colors.black.withOpacity(
+                          0.1,
+                        ), // 👈 10% dim background
+                        builder: (context) {
+                          return Center(
+                            // 👈 force exact center
+                            child: AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              title: Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: primary),
+                                  const SizedBox(width: 8),
+                                  const Text("Success"),
+                                ],
+                              ),
+                              content: const Text(
+                                "Your booking has been confirmed successfully.",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context); // close dialog
+                                    Navigator.pop(context, true);
+                                  },
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       );
                     },
                     onFailure: () {

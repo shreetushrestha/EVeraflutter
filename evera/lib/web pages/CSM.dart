@@ -17,6 +17,8 @@ class _ManagerPageState extends State<ManagerPage> {
   List bookings = [];
   String selectedFilter = 'All';
 
+  bool isStationAvailable = true; // default state
+
   final Map<String, dynamic> managerData = {
     'name': 'hari',
     'email': 'hari@gmail.com',
@@ -50,6 +52,12 @@ class _ManagerPageState extends State<ManagerPage> {
     } catch (e) {
       debugPrint("Booking fetch error: $e");
     }
+  }
+
+  void toggleAvailability(bool available) {
+    setState(() {
+      isStationAvailable = available;
+    });
   }
 
   // Stats getters
@@ -335,14 +343,23 @@ class _ManagerPageState extends State<ManagerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  station['name'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        station['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => openEditStationDialog(station),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 _buildInfoRow(
@@ -400,6 +417,7 @@ class _ManagerPageState extends State<ManagerPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
+
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -422,6 +440,63 @@ class _ManagerPageState extends State<ManagerPage> {
                         ),
                       );
                     }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Station Availability',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: isStationAvailable
+                              ? null
+                              : () => toggleAvailability(true),
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text('Available'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isStationAvailable
+                                ? Colors.green
+                                : Colors.grey[200],
+                            foregroundColor: isStationAvailable
+                                ? Colors.white
+                                : Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: !isStationAvailable
+                              ? null
+                              : () => toggleAvailability(false),
+                          icon: const Icon(Icons.cancel, size: 16),
+                          label: const Text('Unavailable'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: !isStationAvailable
+                                ? Colors.red
+                                : Colors.grey[200],
+                            foregroundColor: !isStationAvailable
+                                ? Colors.white
+                                : Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
@@ -448,6 +523,81 @@ class _ManagerPageState extends State<ManagerPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void openEditStationDialog(Map station) {
+    final nameController = TextEditingController(text: station['name']);
+    final cityController = TextEditingController(text: station['city']);
+    final addressController = TextEditingController(text: station['address']);
+    final priceController = TextEditingController(
+      text: station['price']?.toString(),
+    );
+    final totalSlotsController = TextEditingController(
+      text: station['totalSlots'].toString(),
+    );
+    final availableSlotsController = TextEditingController(
+      text: station['availableSlots'].toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Station"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                _input(nameController, "Name"),
+                _input(cityController, "City"),
+                _input(addressController, "Address"),
+                _input(priceController, "Price"),
+                _input(totalSlotsController, "Total Slots"),
+                _input(availableSlotsController, "Available Slots"),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await StationService().updateStation(station['_id'], {
+                    "name": nameController.text,
+                    "city": cityController.text,
+                    "address": addressController.text,
+                    "price": priceController.text,
+                    "totalSlots": int.parse(totalSlotsController.text),
+                    "availableSlots": int.parse(availableSlotsController.text),
+                  });
+
+                  Navigator.pop(context);
+                  fetchStations(); // refresh UI
+                } catch (e) {
+                  debugPrint("Update error: $e");
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _input(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       ),
     );
   }
